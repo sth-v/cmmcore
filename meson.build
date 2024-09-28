@@ -1,4 +1,4 @@
-project('cmmcore', 'cpp', default_options : ['cpp_std=c++20', 'optimization=3', 'buildtype=release'])
+project('cmmcore', 'cpp', default_options : ['cpp_std=c++20','unity=on', 'optimization=3', 'buildtype=release'])
 # Create an environment object
 env = environment()
 # Extend the PATH variable
@@ -7,7 +7,7 @@ base_compiler_args=['-flto','-lm']
 base_compiler_args=[]
 # Detect the host operating system
 if host_machine.system() == 'darwin'
-    simd_args = ['-march=armv8-a+simd']
+    simd_args = ['-mcpu=apple-m1','-march=armv8-a+simd']
 
 
 
@@ -28,11 +28,13 @@ my_inc = include_directories('.')
 libcmmcore = shared_library('cmmcore',
                             'cmmcore/nurbs_utils.h',
                             'cmmcore/nurbs.h',
+   'cmmcore/ccx.h',
                             'cmmcore/binom.h',
                             'cmmcore/vec.h',
- 'cmmcore/quickhull.hpp',
+                            'cmmcore/quickhull.hpp',
                             version : '0.1.4',
-                            override_options : [ 'cpp_std=c++20'], install : false, include_directories : my_inc)
+                             install : false,
+                            include_directories : my_inc)
 
 libcmmcore_dep = declare_dependency(link_with : libcmmcore, include_directories : my_inc)
 

@@ -70,7 +70,7 @@ test('knots_test',
 cxx_test = executable('cxx_test',
                'cxx_test.cpp',
                include_directories : my_inc,
-               install : false
-)
+               install : false,link_with: libcmmcore)
+
 test('cxx_test',
      cxx_test)

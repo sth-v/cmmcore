@@ -155,7 +155,7 @@ struct vec3 {
     y+=b.y;
     z+=b.z;
   }
-  [[nodiscard]] double dot( const vec3& b) const {
+  double dot( const vec3& b) const {
 #ifdef __ARM_NEON
     float64x2_t va =  vld1q_f64(&x);float64x2_t vb =  vld1q_f64(&b.x);
     float64x2_t _vml=va*vb;
@@ -172,11 +172,11 @@ struct vec3 {
     return x * b.x + y * b.y + z * b.z;
 #endif
   }
-  [[nodiscard]] double dot( const double _x,const double _y,const double _z) const {
+  double dot( const double _x,const double _y,const double _z) const {
 
     return x * _x + y * _y + z * _z;
   }
-  [[nodiscard]] vec3 cross( const vec3& b) const {
+  vec3 cross( const vec3& b) const {
     return {
       y * b.z - z * b.y,
       z * b.x - x * b.z,
@@ -219,7 +219,7 @@ struct vec3 {
   }
 
 
-  [[nodiscard]] double sqLength() const {
+  double sqLength() const {
     #ifdef ___ARM_NEON //__ARM_NEON
     float32x4_t v =  vld1q_f32(&x);
     double sq =vaddvq_f32(vmulq_f32(v,v));
@@ -228,7 +228,7 @@ struct vec3 {
     #endif
     return sq;
   }
-  [[nodiscard]] double length() const {
+  double length() const {
     #ifdef ___ARM_NEON //__ARM_NEON
     float32x4_t v =  vld1q_f32(&x);
     double sq =vaddvq_f32(vmulq_f32(v,v));
@@ -249,7 +249,7 @@ struct vec3 {
   void normalize() {
     unitize();
   }
-  [[nodiscard]] vec3 unit() const {
+  vec3 unit() const {
     vec3 result(x,y,z);
     result.unitize();
     return result;
@@ -542,7 +542,7 @@ struct vec4 {
     z+=b.z;
     w+=b.w;
   }
-  [[nodiscard]] double dot( const vec4& b) const {
+  double dot( const vec4& b) const {
 #ifdef __ARM_NEON
     float64x2_t va =  vld1q_f64(&x);float64x2_t vb =  vld1q_f64(&b.x);
     float64x2_t _vml=va*vb;
@@ -662,12 +662,12 @@ struct vec4 {
   }
 
 
-  [[nodiscard]] double sqLength() const {
+  double sqLength() const {
 
     double sq=x*x+y*y+z*z+w*w;
     return sq;
   }
-  [[nodiscard]] double length() const {
+  double length() const {
     #ifdef ___ARM_NEON
     auto sq =sqLength();
 
@@ -693,7 +693,7 @@ struct vec4 {
   void normalize() {
     unitize();
   }
-  [[nodiscard]] vec4 unit() const {
+  vec4 unit() const {
     vec4 result(x,y,z,w);
     result.unitize();
     return result;

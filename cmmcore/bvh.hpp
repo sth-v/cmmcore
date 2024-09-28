@@ -87,7 +87,7 @@ struct alignas(16) AABB {
         max(std::numeric_limits<double>::lowest()) {}
   AABB(const vec3 &min, const vec3 &max) : min(min), max(max) {}
 
-  [[nodiscard]] bool infinity() const{
+  bool infinity() const{
     return (max.x==max.y==max.z==std::numeric_limits<double>::min() &&  min.x==min.y==min.z==std::numeric_limits<double>::max());
 
 }
@@ -585,7 +585,7 @@ build_bvh_bottom_up(std::vector<Object3D *> &objects) {
     BVHLeaf(Object3D *obj)
         : bbox(obj->bounding_box), object(obj),
           node(std::make_unique<BVHNode>(obj->bounding_box, obj)) {}
-    [[nodiscard]] bool empty() const {
+    bool empty() const {
       return ((object == nullptr) or (node == nullptr));
     }
   };
