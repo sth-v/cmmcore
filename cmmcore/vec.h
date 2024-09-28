@@ -40,6 +40,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #endif
 #include <cmath>
 namespace cmmcore {
+#define CMMCORE_DECIMALS 8
 // SIMD-friendly 3D vector
 /**
  * @brief Represents a 3D vector with support for SIMD alignment.
@@ -251,29 +252,33 @@ struct vec3 {
 
 };
 
+  // Quantize to CMMCORE_DECIMALS decimal places
+ inline int quantize(double value, int decimals) {
+    return static_cast<int>(value *  decimals);
 
+
+  }
 struct Vec3Hash {
   size_t operator()(const vec3& v) const {
-    int qx = quantize(v.x);
-    int qy = quantize(v.y);
-    int qz = quantize(v.z);
+    int qx = quantize(v.x, CMMCORE_DECIMALS);
+    int qy = quantize(v.y,CMMCORE_DECIMALS);
+    int qz = quantize(v.z,CMMCORE_DECIMALS);
     size_t h1 = std::hash<int>()(qx);
     size_t h2 = std::hash<int>()(qy);
     size_t h3 = std::hash<int>()(qz);
     return h1 ^ (h2 << 1) ^ (h3 << 2);
   }
 
-  static int quantize(double value) {
-    return static_cast<int>(value * 1e6f); // Quantize to 6 decimal places
-  }
+
 };
 struct Vec3Equal {
   bool operator()(const vec3& a, const vec3& b) const {
     return
-        Vec3Hash::quantize(a.x) == Vec3Hash::quantize(b.x) &&
-        Vec3Hash::quantize(a.y) == Vec3Hash::quantize(b.y) &&
-        Vec3Hash::quantize(a.z) == Vec3Hash::quantize(b.z);
+        quantize(a.x,CMMCORE_DECIMALS) == quantize(b.x,CMMCORE_DECIMALS) &&
+        quantize(a.y,CMMCORE_DECIMALS) == quantize(b.y,CMMCORE_DECIMALS) &&
+        quantize(a.z,CMMCORE_DECIMALS) == quantize(b.z,CMMCORE_DECIMALS);
   }
+
 };
 
 
@@ -431,9 +436,8 @@ struct vec4 {
    * @param z The z component.
    */
   vec4(const std::array<double,4>& arr) : x(arr[0]), y(arr[1]), z(arr[2]),w(arr[3]) {}
-  vec4(double x, double y, double z) : x(x), y(y), z(z),w(1) {}
+
   vec4(double x, double y, double z,double w) : x(x), y(y), z(z),w(w) {}
-  vec4(const vec3& other) : x(other.x), y(other.y), z(other.z),w(1) {}
   vec4(const vec4& other) : x(other.x), y(other.y), z(other.z),w(other.w) {}
   vec3 to_vec3() const {
 
@@ -568,7 +572,8 @@ struct vec4 {
     return {
       y * b.z - z * b.y,
       z * b.x - x * b.z,
-      x * b.y - y * b.x
+      x * b.y - y * b.x,
+      1.
   };
   }
   void cross( const vec4& b, vec4& result ) const {
@@ -683,7 +688,7 @@ struct vec4 {
     unitize();
   }
   [[nodiscard]] vec4 unit() const {
-    vec4 result(x,y,z);
+    vec4 result(x,y,z,w);
     result.unitize();
     return result;
 

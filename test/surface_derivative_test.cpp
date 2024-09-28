@@ -3,6 +3,7 @@
 //
 #include <iostream>
 #include "cmmcore/nurbs_utils.h"
+#include "cmmcore/ccx.h"
 using namespace cmmcore;
 
 

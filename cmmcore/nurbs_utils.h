@@ -43,7 +43,7 @@ namespace cmmcore {
      */
     inline int find_span(const int n, const int p, double u, const std::vector<double> &U,
                          const bool is_periodic) noexcept {
-        assert(U.size() >= static_cast<size_t>(n + 2));
+        //assert(U.size() >= static_cast<size_t>(n + 2));
 
         const double U_min = U[p];
         const double U_max = U[n + 1];
@@ -596,7 +596,7 @@ namespace cmmcore {
         int mult = 0;
         for (const auto &kv: knot_vector) {
             double difference = knot - kv;
-            if (std::fabs(difference) <= calc_epsilon(kv)) {
+            if (std::fabs(difference) <= 1e-12) {
                 mult += 1;
             }
         }

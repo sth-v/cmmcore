@@ -1,9 +1,9 @@
-project('cmmcore', 'cpp', default_options : ['cpp_std=c++20', 'optimization=0'])
+project('cmmcore', 'cpp', default_options : ['cpp_std=c++20', 'optimization=3', 'buildtype=release'])
 # Create an environment object
 env = environment()
 # Extend the PATH variable
 
-#base_compiler_args=['-flto']
+base_compiler_args=['-flto','-lm']
 base_compiler_args=[]
 # Detect the host operating system
 if host_machine.system() == 'darwin'

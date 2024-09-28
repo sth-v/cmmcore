@@ -65,3 +65,12 @@ knots_test = executable('knots_test',
 )
 test('knots_test',
      knots_test)
+
+# cxx_test
+cxx_test = executable('cxx_test',
+               'cxx_test.cpp',
+               include_directories : my_inc,
+               install : false
+)
+test('cxx_test',
+     cxx_test)

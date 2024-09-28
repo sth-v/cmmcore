@@ -14,76 +14,122 @@
 #include <ranges>
 #include <cassert>
 #include "cmmcore/nurbs_utils.h"
-
+#include "cmmcore/bvh.hpp"
 #include "cmmcore/quickhull.hpp"
+
 namespace cmmcore {
-
-
     class NURBSCurve {
     public:
-        NURBSCurve()=default;
-        NURBSCurve(const std::vector<vec4 > &control_points): NURBSCurve(
-            control_points, control_points.size() >= 4 ? 3 : 1,  false) {
+        NURBSCurve() = default;
+
+        NURBSCurve(const std::vector<vec4> &control_points): NURBSCurve(
+            control_points, control_points.size() >= 4 ? 3 : 1, false) {
+
         };
 
-        NURBSCurve(const std::vector<vec4 > &control_points, const bool periodic): NURBSCurve(
+        NURBSCurve(const std::vector<vec4> &control_points, const bool periodic): NURBSCurve(
             control_points, control_points.size() >= 4 ? 3 : 1, periodic) {
-        };
 
-        NURBSCurve(const std::vector<vec4  > &control_points, const int degree): NURBSCurve(
+        };
+        NURBSCurve(const std::vector<vec3> &control_points, const  int degree ): NURBSCurve(control_points, degree, false) {};
+        NURBSCurve(const std::vector<vec4> &control_points, const int degree): NURBSCurve(
             control_points, degree, false) {
-            generate_knots();
+
+
         };
 
 
         // Constructors
+        NURBSCurve(const std::vector<vec3> &control_points, const int degree,
+                     const bool periodic): _degree(degree), _periodic(periodic) {
 
-        NURBSCurve(const std::vector<vec4 > &control_points, int degree,
-                           bool periodic): _control_points(control_points),_degree(degree), _periodic(periodic) {}
-
-        NURBSCurve(const std::vector<vec3> &control_points, int degree,
-                   bool periodic): _degree(degree), _periodic(periodic) {
             // Initialize control points
             const int nnn = control_points.size();
-            _control_points.resize( nnn);
+            _control_points.resize(nnn);
             for (size_t i = 0; i < control_points.size(); ++i) {
-                    _control_points[i].set(control_points[i]);
-                }
+                _control_points[i].set(control_points[i]);
+            }
 
 
             // Initialize knots
             if (_periodic) {
                 generate_knots_periodic();
             } else {
-
                 generate_knots();
             }
 
             if (_periodic) {
                 make_periodic();
             }
+            rebuildAABB();
         }
-        NURBSCurve(const std::vector<vec4 > &control_points, int degree,
-                           const std::vector<double> &knots, bool periodic)
-                    :_control_points(control_points), _degree(degree), _knots(knots),_periodic(periodic) {}
-        // Copy constructor and assignment operator
-        NURBSCurve(const NURBSCurve &other) = default;
 
-        NURBSCurve &operator=(const NURBSCurve &other) = default;
+        NURBSCurve(const std::vector<vec4> &control_points, const int degree,
+                   bool periodic) :    _control_points(control_points), _degree(degree), _periodic(periodic){
+
+            // Initialize knots
+            if (_periodic) {
+                generate_knots_periodic();
+            } else {
+                generate_knots();
+            }
+
+            if (_periodic) {
+                make_periodic();
+            }
+            rebuildAABB();
+        }
+
+        NURBSCurve(const std::vector<vec4> &control_points, const int degree,
+                   const std::vector<double> &knots, bool periodic)
+            : _control_points(control_points), _degree(degree), _knots(knots), _periodic(periodic) {
+            _update_interval();
+            rebuildAABB();
+        }
+
+        // Copy constructor and assignment operator
+        NURBSCurve(const NURBSCurve &other) {
+            _control_points = other._control_points;
+            _degree = other._degree;
+            //for (int i = 0; i < other._knots.size(); ++i) {
+            //    printf("%f ",other._knots[i]);
+            //}
+            //printf("\n ");
+            _knots = other._knots;
+            //for (int i = 0; i < _knots.size(); ++i) {
+            //    printf("%f ",_knots[i]);
+            //}
+            _aabb = other._aabb;
+            _periodic = other._periodic;
+            _interval=other._interval;
+            _hull=other._hull;
+
+        };
+
+        NURBSCurve& operator=(const NURBSCurve &other) {
+            _control_points = other._control_points;
+            _degree = other._degree;
+            _knots = other._knots;
+            _aabb = other._aabb;
+            _periodic = other._periodic;
+            _interval=other._interval;
+            _hull=other._hull;
+            return *this;
+        };
 
         // Methods
 
-    // Check if the NURBS curve is periodic
-     [[nodiscard]] bool is_periodic() const {
-        for (int j = 0; j < _degree; ++j) {
-            for (int i = 0; i < 4; ++i) {
-                if (_control_points[j][i] != _control_points[_control_points.size() - _degree + j][i]) {
-                    return false;
+        // Check if the NURBS curve is periodic
+        [[nodiscard]] bool is_periodic() const {
+            for (int j = 0; j < _degree; ++j) {
+                for (int i = 0; i < 4; ++i) {
+                    if (_control_points[j][i] != _control_points[_control_points.size() - _degree + j][i]) {
+                        return false;
+                    }
                 }
             }
+            return true;
         }
-        return true;
-    }
 
     // Update interval based on knots
     void _update_interval() {
@@ -91,10 +137,11 @@ namespace cmmcore {
         _interval[1] = std::max_element(_knots.begin(), _knots.end())[0];
     }
 
-    // Hook function called after knots are updated
-    void knots_update_hook() {
-        _update_interval();
-    }
+        // Hook function called after knots are updated
+        void knots_update_hook() {
+            _update_interval();
+
+        }
 
     // Normalize the knot vector
     void normalize_knots() {
@@ -170,8 +217,9 @@ namespace cmmcore {
          int s_u = find_multiplicity(t,_knots);
         // Compute new control points
         _control_points.resize(new_count);
-         for (int i = n; i <= new_count; ++i) {
-             _control_points[i]={0.0, 0.0, 0.0, 0.0};
+
+         for (int i = 0; i <= count; ++i) {
+             _control_points[i]=cpts.back()-i;
          }
         knot_insertion(_degree, _knots, cpts, t, count, s_u, span, _control_points);
 
@@ -266,50 +314,89 @@ namespace cmmcore {
         }
         }
      }
-        const int get_degree() {
+        int get_degree() {
          return _degree;
      }
         void set_degree(int val)  {
          _degree=val;
          _update_interval();
      }
+        const std::vector<double> get_knots() {
+            return _knots;
+        }
 
-        const std::vector<double>  get_knots()  {
-         return _knots;
+        void set_knots(std::vector<double> &knots) {
+            _knots = std::move(knots);
+            _update_interval();
+        }
 
-     }
-        void  set_knots(std::vector<double>& knots)  {
-         _knots=std::move(knots);
-         _update_interval();
+        const std::array<double, 2> interval() {
+            return _interval;
+        }
+
+        AABB &aabb() {
+
+            rebuildAABB();
+
+            return _aabb;
+        }
 
 
-
-     }
-
-       const std::array<double,2> interval() {
-         return _interval;
-     }
-    void convex_hull(std::vector<vec3> hull) {}
-    private:
         // Member variables
 
 
-        std::vector<vec4 > _control_points{}; // Each control point is (x, y, z, weight)
-        int _degree=0;
+        std::vector<vec4> _control_points{}; // Each control point is (x, y, z, weight)
+        int _degree = 0;
         std::vector<double> _knots{};
         bool _periodic = false;
-        std::vector<vec3>_hull{};
+        std::vector<vec3> _hull{};
         std::array<double, 2> _interval{0., 1.}; // [min_knot, max_knot]
+        AABB _aabb{};
         // Helper methods
-
-
+        void rebuildAABB() {
+            _aabb.min.set(_control_points[0].to_vec3());
+            _aabb.max.set(_control_points[0].to_vec3());
+            for (auto p: _control_points) {
+                _aabb.expand(p.to_vec3());
+            }
+        }
     };
 
 
+    inline void ccx(NURBSCurve &c1, NURBSCurve &c2,double tol, std::vector<std::pair<double,double>> &result){
+        c1.rebuildAABB();
+        c2.rebuildAABB();
+        c1._update_interval();
+        c2._update_interval();
+        auto& bb1=c1.aabb();
+        auto& bb2=c2.aabb();
+        auto iv1 =c1.interval();
+        auto iv2= c2.interval();
+        if (bb1.intersects(bb2)) {
+            if ((bb1.max-bb1.min).length()<tol && (bb2.max-bb2.min).length()<tol) {
+                size_t l=result.size();
+                double _first= 0.5*(iv1[0]+iv1[1]);
+                double _second= 0.5*(iv2[0]+iv2[1]);
+                if (l>0)                                 {
+                    //printf("dddddd");
+                    //printf("(%f,%f,[%d,%d])\n",d1,d2, (d1 <=tol ) , (d2 <=tol ) );
+                    if ( (std::abs(result[l-1].first - _first)   <=tol ) &&  (std::abs(result[l-1].second - _second) <=tol )  ) {
+                        return;
+                    }
+                }
+                result.emplace_back(_first,_second);
+                return;
+            }
 
+                auto[a1,b1] = c1.split(  (iv1[1]-iv1[0])*0.5+iv1[0], false);
+                auto[a2,b2] = c2.split(  (iv2[1]-iv2[0])*0.5+iv2[0], false);
+                ccx(a1,a2,tol,result);
+                ccx(b1,b2,tol,result);
+                ccx(a1,b2,tol,result);
+                ccx(b1,a2,tol,result);
 
-
-
+            }
+        }
     class NURBSSurface {
     };
 }
