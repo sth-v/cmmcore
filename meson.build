@@ -1,0 +1,45 @@
+project('cmmcore', 'cpp', default_options : ['cpp_std=c++20', 'optimization=0'])
+# Create an environment object
+env = environment()
+# Extend the PATH variable
+
+#base_compiler_args=['-flto']
+base_compiler_args=[]
+# Detect the host operating system
+if host_machine.system() == 'darwin'
+    simd_args = ['-march=armv8-a+simd']
+
+
+
+else
+    simd_args = [
+        '-msse', '-msse2', '-msse3', '-mssse3',
+        '-msse4.1', '-msse4.2', '-mavx', '-mavx2'
+    ]
+endif
+
+# Add the SIMD arguments to the project
+add_project_arguments(base_compiler_args+simd_args, language : 'cpp')
+
+
+my_inc = include_directories('.')
+
+
+libcmmcore = shared_library('cmmcore',
+                            'cmmcore/nurbs_utils.h',
+                            'cmmcore/nurbs.h',
+                            'cmmcore/binom.h',
+
+                            version : '0.1.4',
+                            override_options : ['c_std=c17', 'cpp_std=c++17', 'unity=on'], install : false, include_directories : my_inc)
+
+libcmmcore_dep = declare_dependency(link_with : libcmmcore, include_directories : my_inc)
+
+
+subdir('test')
+
+
+
+
+
+
