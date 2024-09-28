@@ -363,40 +363,7 @@ namespace cmmcore {
     };
 
 
-    inline void ccx(NURBSCurve &c1, NURBSCurve &c2,double tol, std::vector<std::pair<double,double>> &result){
-        c1.rebuildAABB();
-        c2.rebuildAABB();
-        c1._update_interval();
-        c2._update_interval();
-        auto& bb1=c1.aabb();
-        auto& bb2=c2.aabb();
-        auto iv1 =c1.interval();
-        auto iv2= c2.interval();
-        if (bb1.intersects(bb2)) {
-            if ((bb1.max-bb1.min).length()<tol && (bb2.max-bb2.min).length()<tol) {
-                size_t l=result.size();
-                double _first= 0.5*(iv1[0]+iv1[1]);
-                double _second= 0.5*(iv2[0]+iv2[1]);
-                if (l>0)                                 {
-                    //printf("dddddd");
-                    //printf("(%f,%f,[%d,%d])\n",d1,d2, (d1 <=tol ) , (d2 <=tol ) );
-                    if ( (std::abs(result[l-1].first - _first)   <=tol ) &&  (std::abs(result[l-1].second - _second) <=tol )  ) {
-                        return;
-                    }
-                }
-                result.emplace_back(_first,_second);
-                return;
-            }
 
-                auto[a1,b1] = c1.split(  (iv1[1]-iv1[0])*0.5+iv1[0], false);
-                auto[a2,b2] = c2.split(  (iv2[1]-iv2[0])*0.5+iv2[0], false);
-                ccx(a1,a2,tol,result);
-                ccx(b1,b2,tol,result);
-                ccx(a1,b2,tol,result);
-                ccx(b1,a2,tol,result);
-
-            }
-        }
     class NURBSSurface {
     };
 }
