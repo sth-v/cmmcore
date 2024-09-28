@@ -10,7 +10,7 @@ int main() {
     std::vector<double> U = {0, 0, 0, 0.5, 1, 1, 1};
 
     // Example control points: Each control point has (x, y, z, weight)
-    std::vector<std::vector<double>> P = {
+    std::vector<vec4> P = {
         {0.0, 0.0, 0.0, 1.0},
         {0.5, 1.0, 0.0, 1.0},
         {1.0, 0.0, 0.0, 1.0},
@@ -24,10 +24,10 @@ int main() {
     int d = 2;          // Number of derivatives to compute
     bool is_periodic = false;
 
-    std::vector<std::vector<double>> CK;  // To store the computed derivatives
-
+    std::vector<vec4> CK;  // To store the computed derivatives
+    vec4 result;
     curve_derivs_alg1(n, p, U, P, u, d, CK, is_periodic);
-
+    curve_point(n,p,U,P,u,result,is_periodic);
     // Output the computed derivatives
     for (int k = 0; k <= d; ++k) {
         std::cout << "Derivative " << k << ": (";

@@ -29,9 +29,10 @@ libcmmcore = shared_library('cmmcore',
                             'cmmcore/nurbs_utils.h',
                             'cmmcore/nurbs.h',
                             'cmmcore/binom.h',
-
+                            'cmmcore/vec.h',
+ 'cmmcore/quickhull.hpp',
                             version : '0.1.4',
-                            override_options : ['c_std=c17', 'cpp_std=c++17', 'unity=on'], install : false, include_directories : my_inc)
+                            override_options : [ 'cpp_std=c++20'], install : false, include_directories : my_inc)
 
 libcmmcore_dep = declare_dependency(link_with : libcmmcore, include_directories : my_inc)
 

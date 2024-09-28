@@ -10,7 +10,7 @@
 #include <algorithm>
 #include <set>
 #include <stdexcept>
-
+#include "cmmcore/vec.h"
 #include "cmmcore/binom.h"
 #include "cmmcore/utils.h"
 
@@ -133,10 +133,10 @@ namespace cmmcore {
      * @param is_periodic Indicates if the curve is periodic.
      */
     inline void curve_point(const int n, const int p, const std::vector<double> &U,
-                            const std::vector<std::vector<double> > &P, double u,
-                            std::vector<double> &result, const bool is_periodic) noexcept {
+                            const std::vector<vec4> &P, double u,
+                            vec4 &result, const bool is_periodic) noexcept {
         int pp = p + 1;
-        result.assign(4, 0.0); // Initialize result with 4 zeros
+        result.set(0.,0.,0.,0.); // Initialize result with 4 zeros
 
         int span = find_span(n, p, u, U, is_periodic);
         std::vector<double> N(pp, 0.0);
@@ -175,17 +175,17 @@ namespace cmmcore {
      * @param ders Output 2D vector where `ders[k][j]` contains the `k`-th derivative of the `j`-th nonzero basis function at `u`.
      */
     inline void ders_basis_funs(const int i, const double u, const int p, const int n, const std::vector<double> &U,
-                                std::vector<std::vector<double> > &ders) {
+                                std::vector<vec4> &ders) {
         int pp = p + 1;
         int nn = n + 1;
 
         // Initialize ders with zeros
-        ders.assign(nn, std::vector<double>(pp, 0.0));
+        ders.assign(nn, vec4( 0.0,0.0,0.0,.0));
 
-        std::vector<std::vector<double> > ndu(pp, std::vector<double>(pp, 0.0));
+        std::vector<vec4> ndu(pp,  vec4( 0.0,0.0,0.0,.0));
         std::vector<double> left(pp, 0.0);
         std::vector<double> right(pp, 0.0);
-        std::vector<std::vector<double> > a(2, std::vector<double>(pp, 0.0));
+        std::vector<vec4> a(2, vec4( 0.0,0.0,0.0,.0));
 
         ndu[0][0] = 1.0;
 
@@ -278,16 +278,16 @@ namespace cmmcore {
      * @param is_periodic Indicates if the curve is periodic.
      */
     inline void curve_derivs_alg1(const int n, const int p, const std::vector<double> &U,
-                                  const std::vector<std::vector<double> > &P, double u, int d,
-                                  std::vector<std::vector<double> > &CK, bool is_periodic) {
+                                  const std::vector<vec4> &P, double u, int d,
+                                  std::vector<vec4> &CK, bool is_periodic) {
         int du = std::min(d, p);
 
         // Initialize CK with zeros
-        CK.assign(du + 1, std::vector<double>(P[0].size(), 0.0));
+        CK.assign(du + 1, vec4( 0.0,0.0,0.0,.0));
 
         int span = find_span(n, p, u, U, is_periodic);
 
-        std::vector<std::vector<double> > nders;
+        std::vector<vec4> nders;
         ders_basis_funs(span, u, p, du, U, nders);
 
         int pp = p + 1;
@@ -324,14 +324,14 @@ namespace cmmcore {
      * @param PK Output 3D vector to store the computed control points of curve derivatives.
      */
     inline void curve_deriv_cpts(const int p, const std::vector<double> &U,
-                                 const std::vector<std::vector<double> > &P, const int d, const int r1, const int r2,
-                                 std::vector<std::vector<std::vector<double> > > &PK) {
+                                 const std::vector<vec4> &P, const int d, const int r1, const int r2,
+                                 std::vector<std::vector<vec4> > &PK) {
         int r = r2 - r1;
         int dim = static_cast<int>(P[0].size());
         int pp = p + 1;
 
         // Initialize PK with zeros
-        PK.assign(d + 1, std::vector<std::vector<double> >(r + 1, std::vector<double>(dim, 0.0)));
+        PK.assign(d + 1, std::vector<vec4>(r + 1, vec4( 0.0,0.0,0.0,.0)));
 
         // Load the initial control points
         for (int i = 0; i <= r; ++i) {
@@ -374,23 +374,23 @@ namespace cmmcore {
      */
     inline void surface_deriv_cpts(const int dim, const std::vector<int> &degree,
                                    const std::vector<double> &kv0, const std::vector<double> &kv1,
-                                   const std::vector<std::vector<std::vector<double> > > &cpts,
+                                   const std::vector<std::vector<vec4> > &cpts,
                                    const std::vector<int> &cpsize, const std::vector<int> &rs,
                                    const std::vector<int> &ss, const int deriv_order,
-                                   std::vector<std::vector<std::vector<std::vector<std::vector<double> > > > > &PKL) {
+                                   std::vector<std::vector<std::vector<std::vector<vec4> > > > &PKL) {
         int du = std::min(degree[0], deriv_order);
         int dv = std::min(degree[1], deriv_order);
         int r = rs[1] - rs[0];
         int s = ss[1] - ss[0];
 
         // Initialize PKL with zeros
-        PKL.assign(du + 1, std::vector<std::vector<std::vector<std::vector<double> > > >(
-                       dv + 1, std::vector<std::vector<std::vector<double> > >(
-                           r + 1, std::vector<std::vector<double> >(
-                               s + 1, std::vector<double>(dim, 0.0)))));
+        PKL.assign(du + 1, std::vector<std::vector<std::vector<vec4> > >(
+                       dv + 1, std::vector<std::vector<vec4> >(
+                           r + 1, std::vector<vec4>(
+                               s + 1, vec4( 0.0,0.0,0.0,.0)))));
 
-        std::vector<std::vector<double> > temp_cpts(cpsize[0], std::vector<double>(dim, 0.0));
-        std::vector<std::vector<std::vector<double> > > PKu;
+        std::vector<vec4> temp_cpts(cpsize[0], vec4( 0.0,0.0,0.0,.0));
+        std::vector<std::vector<vec4> > PKu;
 
         // Control points of the U derivatives of every V-curve
         for (int j = ss[0]; j <= ss[1]; ++j) {
@@ -411,8 +411,8 @@ namespace cmmcore {
         }
 
         // Temporary variables
-        std::vector<std::vector<double> > temp_cpts_v(cpsize[1], std::vector<double>(dim, 0.0));
-        std::vector<std::vector<std::vector<double> > > PKuv;
+        std::vector<vec4> temp_cpts_v(cpsize[1], vec4( 0.0,0.0,0.0,.0));
+        std::vector<std::vector<vec4> > PKuv;
 
         // Control points of the V derivatives of every U-differentiated V-curve
         for (int k = 0; k <= du; ++k) {
@@ -458,7 +458,7 @@ namespace cmmcore {
      */
     inline void surface_point(const int n, const int p, const std::vector<double> &U, const int m, const int q,
                               const std::vector<double> &V,
-                              const std::vector<std::vector<std::vector<double> > > &Pw, double u,
+                              const std::vector<std::vector<vec4> > &Pw, double u,
                               const double v, const bool periodic_u, const bool periodic_v,
                               std::vector<double> &result) {
         int uspan = find_span(n, p, u, U, periodic_u);
@@ -471,7 +471,7 @@ namespace cmmcore {
         basis_funs(vspan, v, q, V, Nv);
 
         int dim = static_cast<int>(Pw[0][0].size());
-        std::vector<std::vector<double> > temp(q + 1, std::vector<double>(dim, 0.0));
+        std::vector<vec4> temp(q + 1, vec4( 0.0,0.0,0.0,.0));
 
         // Compute the temporary points
         for (int l = 0; l <= q; ++l) {
@@ -524,18 +524,19 @@ namespace cmmcore {
      * @param SKL Output array to store the computed derivatives of the surface.
      *            Indexed as SKL[k][l][dim - 1].
      */
-    inline void rat_surface_derivs(const std::vector<std::vector<std::vector<double> > > &SKLw,
-                                   const int deriv_order, std::vector<std::vector<std::vector<double> > > &SKL) {
+    inline void rat_surface_derivs(const std::vector<std::vector<vec4> > &SKLw,
+                                   const int deriv_order, std::vector<std::vector<vec4> > &SKL) {
         const auto dim = SKLw[0][0].size();
         const auto dm = dim - 1;
         const auto do_order = deriv_order + 1;
 
         // Initialize SKL with zeros
-        SKL.assign(do_order, std::vector<std::vector<double> >(do_order, std::vector<double>(dm, 0.0)));
+        SKL.assign(do_order, std::vector<vec4>(do_order, vec4( 0.0,0.0,0.0,.0)));
 
         // Temporary variables
-        std::vector<double> v(dim, 0.0);
-        std::vector<double> v2(dm, 0.0);
+        vec4 v(0.0, 0.0,0.0,0.0);
+        vec3 v2(0.0, 0.0,0.0);
+
 
         for (int k = 0; k < do_order; ++k) {
             for (int l = 0; l < do_order; ++l) {
@@ -557,7 +558,8 @@ namespace cmmcore {
                     }
 
                     // Reset v2
-                    std::fill(v2.begin(), v2.end(), 0.0);
+                    v2.set(0,0,0);
+
 
                     for (int j = 1; j <= l; ++j) {
                         double bin_lj = binomial_coefficient(l, j);
@@ -661,9 +663,9 @@ namespace cmmcore {
      * @param is_periodic Indicates if the curve is periodic.
      * @return New control points after knot insertion.
      */
-    inline std::vector<std::vector<double> > knot_insertion(const int degree,
+    inline std::vector<vec4> knot_insertion(const int degree,
                                                             const std::vector<double> &knots,
-                                                            const std::vector<std::vector<double> > &ctrlpts,
+                                                            const std::vector<vec4> &ctrlpts,
                                                             const double u, const int num, const int s, const int span
     ) {
 
@@ -672,8 +674,8 @@ namespace cmmcore {
 
         int dim = static_cast<int>(ctrlpts[0].size());
 
-        std::vector<std::vector<double> > result(nq, std::vector<double>(dim, 0.0));
-        std::vector<std::vector<double> > temp(degree + 1, std::vector<double>(dim, 0.0));
+        std::vector<vec4> result(nq, vec4(0.,0.,0.,0.));
+        std::vector<vec4> temp(degree + 1, vec4(0.,0.,0.,0.));
 
         // Copy unaffected control points
     for (int i = 0; i <= span - degree; ++i) {
@@ -716,8 +718,8 @@ namespace cmmcore {
     }
     inline void knot_insertion(const int degree,
                                                             const std::vector<double> &knots,
-                                                            const std::vector<std::vector<double> > &ctrlpts,
-                                                            const double u, const int num, const int s, const int span,std::vector<std::vector<double> >& result
+                                                            const std::vector<vec4> &ctrlpts,
+                                                            const double u, const int num, const int s, const int span,std::vector<vec4>& result
     ) {
 
         int n = static_cast<int>(ctrlpts.size());//static_cast<int>(ctrlpts.size()) - 1;
@@ -726,7 +728,7 @@ namespace cmmcore {
         int dim = static_cast<int>(ctrlpts[0].size());
 
 
-        std::vector<std::vector<double> > temp(degree + 1, std::vector<double>(dim, 0.0));
+        std::vector<vec4> temp(degree + 1, vec4(0.,0.,0.,0.));
 
         // Copy unaffected control points
     for (int i = 0; i <= span - degree; ++i) {
@@ -820,8 +822,8 @@ namespace cmmcore {
      * @param is_periodic Indicates if the curve is periodic.
      * @return New control points after knot removal.
      */
-    inline std::vector<std::vector<double> > knot_removal(int degree, const std::vector<double> &knots,
-                                                          const std::vector<std::vector<double> > &ctrlpts,
+    inline std::vector<vec4> knot_removal(int degree, const std::vector<double> &knots,
+                                                          const std::vector<vec4> &ctrlpts,
                                                           double u, double tol = 1e-4, int num = 1,
                                                           bool is_periodic = false) {
         int s = find_multiplicity(u, knots);
@@ -832,8 +834,8 @@ namespace cmmcore {
         int last = r - s;
         int dim = static_cast<int>(ctrlpts[0].size());
 
-        std::vector<std::vector<double> > ctrlpts_new = ctrlpts;
-        std::vector<std::vector<double> > temp(2 * degree + 1, std::vector<double>(dim, 0.0));
+        std::vector<vec4> ctrlpts_new = ctrlpts;
+        std::vector<vec4> temp(2 * degree + 1,vec4(0.,0.,0.,0.));
 
         for (int t = 0; t < num; ++t) {
             temp[0] = ctrlpts[first - 1];
@@ -857,7 +859,7 @@ namespace cmmcore {
                 jj -= 1;
             }
 
-            std::vector<double> ptn(dim, 0.0);
+            vec4 ptn(0.0,0.,0.,0.);
             if (j - i < t) {
                 if (point_distance(&temp[ii - 1][0], &temp[jj + 1][0], dim) <= tol) {
                     remflag = true;
@@ -867,7 +869,7 @@ namespace cmmcore {
                 for (int k = 0; k < dim; ++k) {
                     ptn[k] = alpha_i * temp[ii + t + 1][k] + (1.0 - alpha_i) * temp[ii - 1][k];
                 }
-                if (point_distance(&ctrlpts[i][0], &ptn[0], dim) <= tol) {
+                if (point_distance(&ctrlpts[i].x, &ptn.x, dim) <= tol) {
                     remflag = true;
                 }
             }
@@ -908,9 +910,9 @@ namespace cmmcore {
      * @param is_periodic Indicates if the curve is periodic.
      * @return A pair containing new control points and new knot vector after refinement.
      */
-    inline std::pair<std::vector<std::vector<double> >, std::vector<double> > knot_refinement(
+    inline std::pair<std::vector<vec4>, std::vector<double> > knot_refinement(
         int degree, const std::vector<double> &knots,
-        const std::vector<std::vector<double> > &ctrlpts,
+        const std::vector<vec4> &ctrlpts,
         const std::vector<double> &knot_list = {},
         const std::vector<double> &add_knot_list = {},
         int density = 1, bool is_periodic = false) {
@@ -960,7 +962,7 @@ namespace cmmcore {
         int a = find_span(n, degree, X.front(), knots, is_periodic);
         int b = find_span(n, degree, X.back(), knots, is_periodic) + 1;
 
-        std::vector<std::vector<double> > new_ctrlpts(n + r_val + 2, std::vector<double>(dim, 0.0));
+        std::vector<vec4> new_ctrlpts(n + r_val + 2, vec4(0.,0.,0.,0.));
         std::vector<double> new_kv(m + r_val + 2, 0.0);
 
         // Copy unaffected control points and knot vector

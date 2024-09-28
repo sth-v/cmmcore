@@ -8,7 +8,7 @@ int main() {
     // Example knot vector
     std::vector<double> U = {0, 0, 0, 0.5, 1, 1, 1};
     // Example control points: Each control point has (x, y, z, weight)
-    std::vector<std::vector<double>> P = {
+    std::vector<vec4> P = {
         {0.0, 0.0, 0.0, 1.0},
         {0.5, 1.0, 0.0, 1.0},
         {1.0, 0.0, 0.0, 1.0},
@@ -21,7 +21,7 @@ int main() {
     double u = 0.3;     // Parameter value
     bool is_periodic = false;
 
-    std::vector<double> result;  // To store the computed point
+    vec4 result;  // To store the computed point
     curve_point(n, p, U, P, u, result, is_periodic);
 
     std::cout << "Computed curve point: ("

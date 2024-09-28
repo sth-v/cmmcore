@@ -7,11 +7,11 @@ using namespace cmmcore;
 int main() {
     int degree = 3;
     std::vector<double> knotvector = {0, 0, 0, 0, 1, 1, 1, 1};
-    std::vector<std::vector<double>> ctrlpts = {
-        {0.0, 0.0},
-        {1.0, 2.0},
-        {2.0, 0.0},
-        {3.0, 2.0}
+    std::vector<vec4> ctrlpts = {
+        {0.0, 0.0,0.},
+        {1.0, 2.0,0.},
+        {2.0, 0.0,0.},
+        {3.0, 2.0,0.}
     };
     double u = 0.5;
     int num = 1;

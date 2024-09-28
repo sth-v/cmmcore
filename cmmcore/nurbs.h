@@ -15,22 +15,22 @@
 #include <cassert>
 #include "cmmcore/nurbs_utils.h"
 
-
+#include "cmmcore/quickhull.hpp"
 namespace cmmcore {
 
 
     class NURBSCurve {
     public:
         NURBSCurve()=default;
-        NURBSCurve(const std::vector<std::vector<double> > &control_points): NURBSCurve(
+        NURBSCurve(const std::vector<vec4 > &control_points): NURBSCurve(
             control_points, control_points.size() >= 4 ? 3 : 1,  false) {
         };
 
-        NURBSCurve(const std::vector<std::vector<double> > &control_points, const bool periodic): NURBSCurve(
+        NURBSCurve(const std::vector<vec4 > &control_points, const bool periodic): NURBSCurve(
             control_points, control_points.size() >= 4 ? 3 : 1, periodic) {
         };
 
-        NURBSCurve(const std::vector<std::vector<double> > &control_points, const int degree): NURBSCurve(
+        NURBSCurve(const std::vector<vec4  > &control_points, const int degree): NURBSCurve(
             control_points, degree, false) {
             generate_knots();
         };
@@ -38,27 +38,18 @@ namespace cmmcore {
 
         // Constructors
 
+        NURBSCurve(const std::vector<vec4 > &control_points, int degree,
+                           bool periodic): _control_points(control_points),_degree(degree), _periodic(periodic) {}
 
-        NURBSCurve(const std::vector<std::vector<double> > &control_points, int degree,
-                   bool periodic)
-                       : _degree(degree), _periodic(periodic) {
+        NURBSCurve(const std::vector<vec3> &control_points, int degree,
+                   bool periodic): _degree(degree), _periodic(periodic) {
             // Initialize control points
-            _control_points.resize(control_points.size());
+            const int nnn = control_points.size();
+            _control_points.resize( nnn);
             for (size_t i = 0; i < control_points.size(); ++i) {
-                if (control_points[i].size() == 4) {
-                    _control_points[i] = {
-                        control_points[i][0], control_points[i][1],
-                        control_points[i][2], control_points[i][3]
-                    };
-                } else if (control_points[i].size() == 3) {
-                    _control_points[i] = {
-                        control_points[i][0], control_points[i][1],
-                        control_points[i][2], 1.0
-                    };
-                } else {
-                    throw std::invalid_argument("Control points must be 3D or 4D.");
+                    _control_points[i].set(control_points[i]);
                 }
-            }
+
 
             // Initialize knots
             if (_periodic) {
@@ -72,7 +63,7 @@ namespace cmmcore {
                 make_periodic();
             }
         }
-        NURBSCurve(const std::vector<std::vector<double> > &control_points, int degree,
+        NURBSCurve(const std::vector<vec4 > &control_points, int degree,
                            const std::vector<double> &knots, bool periodic)
                     :_control_points(control_points), _degree(degree), _knots(knots),_periodic(periodic) {}
         // Copy constructor and assignment operator
@@ -138,7 +129,7 @@ namespace cmmcore {
         }
         int n = static_cast<int>(_control_points.size());
         int new_n = n + _degree;
-        std::vector<std::vector<double> > new_control_points(new_n);
+        std::vector<vec4 > new_control_points(new_n);
 
         // Copy original control points
         std::copy(_control_points.begin(), _control_points.end(), new_control_points.begin());
@@ -168,7 +159,7 @@ namespace cmmcore {
     void insert_knot(double t, int count) {
         int n = static_cast<int>(_control_points.size());
         int new_count = n + count;
-        const std::vector<std::vector<double>> cpts=_control_points;
+        const std::vector<vec4> cpts=_control_points;
 
         // Find knot span
         int span = find_span(n - 1, _degree, t, _knots, false);
@@ -232,8 +223,8 @@ namespace cmmcore {
         }
 
         // Control points for the new curves
-        std::vector<std::vector<double> > curve1_ctrlpts(temp_obj._control_points.begin() , temp_obj._control_points.begin() + ks +r);
-        std::vector<std::vector<double> > curve2_ctrlpts(temp_obj._control_points.begin() + ks  + r-1 , temp_obj._control_points.end());
+        std::vector<vec4 > curve1_ctrlpts(temp_obj._control_points.begin() , temp_obj._control_points.begin() + ks +r);
+        std::vector<vec4 > curve2_ctrlpts(temp_obj._control_points.begin() + ks  + r-1 , temp_obj._control_points.end());
 
         // Create new NURBS curves
         NURBSCurve curve1(curve1_ctrlpts, _degree, surf1_kv, false);
@@ -248,9 +239,9 @@ namespace cmmcore {
     }
 
     // Evaluate a point on the NURBS curve at parameter t
-    void evaluate(double t, std::array<double, 3> &result) const {
+    void evaluate(double t, vec3& result) const {
         int n = static_cast<int>(_control_points.size()) - 1;
-        std::vector<double> res = {0.0, 0.0, 0.0, 0.0};
+        vec4 res = {0.0, 0.0, 0.0, 0.0};
 
         // Assume curve_point is already implemented
         curve_point(n, _degree, _knots, _control_points, t, res, _periodic);
@@ -258,12 +249,13 @@ namespace cmmcore {
         result[0] = res[0];
         result[1] = res[1];
         result[2] = res[2];
+
     }
 
-        const std::vector<std::vector<double> > get_control_points() {
+        const std::vector<vec4 > get_control_points() {
          return _control_points;
      }
-        void set_control_points(std::vector<std::vector<double> >&cpts) {
+        void set_control_points(std::vector<vec4 >&cpts) {
          bool change_size=(cpts.size()!=_control_points.size());
          _control_points = std::move(cpts);
         if (change_size) {
@@ -297,19 +289,23 @@ namespace cmmcore {
        const std::array<double,2> interval() {
          return _interval;
      }
+    void convex_hull(std::vector<vec3> hull) {}
     private:
         // Member variables
 
 
-        std::vector<std::vector<double> > _control_points {{}}; // Each control point is (x, y, z, weight)
+        std::vector<vec4 > _control_points{}; // Each control point is (x, y, z, weight)
         int _degree=0;
         std::vector<double> _knots{};
         bool _periodic = false;
+        std::vector<vec3>_hull{};
         std::array<double, 2> _interval{0., 1.}; // [min_knot, max_knot]
         // Helper methods
 
 
     };
+
+
 
 
 
