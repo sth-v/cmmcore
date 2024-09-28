@@ -714,6 +714,59 @@ namespace cmmcore {
 
         return result;
     }
+    inline void knot_insertion(const int degree,
+                                                            const std::vector<double> &knots,
+                                                            const std::vector<std::vector<double> > &ctrlpts,
+                                                            const double u, const int num, const int s, const int span,std::vector<std::vector<double> >& result
+    ) {
+
+        int n = static_cast<int>(ctrlpts.size());//static_cast<int>(ctrlpts.size()) - 1;
+        int nq = n + num; //int nq = n + num + 1;
+
+        int dim = static_cast<int>(ctrlpts[0].size());
+
+
+        std::vector<std::vector<double> > temp(degree + 1, std::vector<double>(dim, 0.0));
+
+        // Copy unaffected control points
+    for (int i = 0; i <= span - degree; ++i) {
+            result[i] = ctrlpts[i];
+        }
+        for (int i = span - s; i < n; ++i) {//for (int i = span - s + 1; i <= n; ++i) {
+            result[i + num] = ctrlpts[i];
+        }
+
+        // Copy affected control points
+    for (int i = 0; i <= degree - s; ++i) {
+            temp[i] = ctrlpts[span - degree + i];
+        }
+
+        // Knot insertion algorithm
+        for (int j = 1; j <= num; ++j) {
+            int L = span - degree + j;
+        for (int i = 0; i <= degree - j - s; ++i) {
+            double alpha = knot_insertion_alpha(u, knots, span, i, L);
+                for (int idx = 0; idx < dim; ++idx) {
+                    temp[i][idx] = alpha * temp[i + 1][idx] + (1.0 - alpha) * temp[i][idx];
+                }
+            }
+            //memcpy(&result[L][ 0], &temp[0][0], sizeof(double) * dim);
+            //memcpy(&result[span + num - j - s][ 0], &temp[(degree - j - s)][0], sizeof(double) * dim);
+            result[L] = temp[0];
+
+            result[span + num - j - s] = temp[degree - j - s];
+
+
+        }
+
+        // Copy remaining affected control points
+        int L = span - degree + num;
+    for (int i = L + 1; i < span - s + 1; ++i) {
+            result[i] = temp[i - L];
+        }
+
+
+    }
 
     /**
  * @brief Inserts knots into a knot vector.
@@ -724,18 +777,14 @@ namespace cmmcore {
  * @param r Number of times to insert the knot.
  * @return New knot vector after insertion.
  */
-    inline std::vector<double> knot_insertion_kv(const std::vector<double> &knots, double u, int span, int r) {
-        int kv_size = static_cast<int>(knots.size());
-        std::vector<double> kv_updated(kv_size + r, 0.0);
+    inline std::vector<double> knot_insertion_kv(const std::vector<double> &knots, const double u, int span, int r) {
+        //auto kv_size =knots.size();
+        std::vector<double> kv_updated=knots;
 
-        for (int i = 0; i <= span; ++i) {
-            kv_updated[i] = knots[i];
-        }
-        for (int i = 1; i <= r; ++i) {
-            kv_updated[span + i] = u;
-        }
-        for (int i = span + 1; i < kv_size; ++i) {
-            kv_updated[i + r] = knots[i];
+
+
+        for (int i = 0; i < r; ++i) {
+            kv_updated.insert(kv_updated.begin()+span+1, u);
         }
 
         return kv_updated;
