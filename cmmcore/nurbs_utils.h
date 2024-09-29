@@ -460,7 +460,7 @@ namespace cmmcore {
                               const std::vector<double> &V,
                               const std::vector<std::vector<vec4> > &Pw, double u,
                               const double v, const bool periodic_u, const bool periodic_v,
-                              std::vector<double> &result) {
+                              vec4 &result) {
         int uspan = find_span(n, p, u, U, periodic_u);
         int vspan = find_span(m, q, v, V, periodic_v);
 

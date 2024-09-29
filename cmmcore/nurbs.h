@@ -362,8 +362,147 @@ namespace cmmcore {
         }
     };
 
-    class NURBSSurface {
-    };
+// External function declarations
+
+class NURBSSurface {
+public:
+    NURBSSurface(const std::vector<std::vector<vec4>>& control_points, const std::array<int, 2>& degree, const std::vector<double>& knots_u = {}, const std::vector<double>& knots_v = {})
+        : _degree(degree), _control_points(control_points) {
+            if (control_points.empty() || control_points[0].empty()) {
+                throw std::invalid_argument("Control points cannot be empty");
+            }
+            _size = {control_points.size(), control_points[0].size()};
+            if (knots_u.empty()) {
+                generate_knots_u();
+            } else {
+                _knots_u = knots_u;
+            }
+            if (knots_v.empty()) {
+                generate_knots_v();
+            } else {
+                _knots_v = knots_v;
+            }
+            _update_interval();
+        }
+    void generate_knots_u() {
+        std::size_t nu = _size[0];
+        _knots_u.resize(nu + _degree[0] + 1);
+        std::fill(_knots_u.begin(), _knots_u.begin() + _degree[0] + 1, 0.0);
+        std::iota(_knots_u.begin() + _degree[0] + 1, _knots_u.end() - _degree[0], 1.0);
+        std::fill(_knots_u.end() - _degree[0], _knots_u.end(), static_cast<double>(nu - _degree[0]));
+        _update_interval();
+    }
+    void generate_knots_v() {
+        std::size_t nv = _size[1];
+        _knots_v.resize(nv + _degree[1] + 1);
+        std::fill(_knots_v.begin(), _knots_v.begin() + _degree[1] + 1, 0.0);
+        std::iota(_knots_v.begin() + _degree[1] + 1, _knots_v.end() - _degree[1], 1.0);
+        std::fill(_knots_v.end() - _degree[1], _knots_v.end(), static_cast<double>(nv - _degree[1]));
+        _update_interval();
+    }
+    void evaluate(double u, double v, vec4& result) const noexcept {
+        surface_point(_size[0] - 1, _degree[0], _knots_u, _size[1] - 1, _degree[1], _knots_v, _control_points, u, v, 0, 0, result);
+    }
+    void insert_knot_u(double t, int count) {
+        std::size_t new_count_u = _size[0] + count;
+        std::size_t new_count_v = _size[1];
+        auto cpts = _control_points;
+        int span = find_span(static_cast<int>(_size[0] - 1), _degree[0], t, _knots_u, false);
+        auto k_v = knot_insertion_kv(_knots_u, t, span, count);
+        int s_u = find_multiplicity(t, _knots_u);
+        std::vector<std::vector<vec4>> new_control_points(new_count_u, std::vector<vec4>(new_count_v, {0, 0, 0, 1}));
+        for (std::size_t v = 0; v < _size[1]; ++v) {
+            std::vector<vec4> col(new_count_u);
+            knot_insertion(_degree[0], _knots_u, cpts[v], t, count, s_u, span, col);
+            for (std::size_t u = 0; u < new_count_u; ++u) {
+                new_control_points[u][v] = col[u];
+            }
+        }
+        _control_points = std::move(new_control_points);
+        _knots_u = std::move(k_v);
+        _size[0] = new_count_u;
+        _update_interval();
+    }
+    void insert_knot_v(double t, int count) {
+        std::size_t new_count_u = _size[0];
+        std::size_t new_count_v = _size[1] + count;
+        auto cpts = _control_points;
+        int span = find_span(static_cast<int>(_size[1] - 1), _degree[1], t, _knots_v, false);
+        auto k_v = knot_insertion_kv(_knots_v, t, span, count);
+        int s_v = find_multiplicity(t, _knots_v);
+        std::vector<std::vector<vec4>> new_control_points(new_count_u, std::vector<vec4>(new_count_v, {0, 0, 0, 1}));
+        for (std::size_t u = 0; u < _size[0]; ++u) {
+            std::vector<vec4> row(new_count_v);
+            knot_insertion(_degree[1], _knots_v, cpts[u], t, count, s_v, span, row);
+            new_control_points[u] = row;
+        }
+        _control_points = std::move(new_control_points);
+        _knots_v = std::move(k_v);
+        _size[1] = new_count_v;
+        _update_interval();
+    }
+    std::pair<NURBSSurface, NURBSSurface> split_surface_u(double param, double tol = 1e-7) const {
+        if (param <= _interval[0][0] || param >= _interval[0][1] || std::fabs(param - _interval[0][0]) <= tol || std::fabs(param - _interval[0][1]) <= tol) {
+            throw std::invalid_argument("Cannot split from the domain edge");
+        }
+        int ks = find_span(static_cast<int>(_size[0]), _degree[0], param, _knots_u, false) - _degree[0] + 1;
+        int s = find_multiplicity(param, _knots_u);
+        int r = _degree[0] - s;
+        NURBSSurface temp_obj = *this;
+        temp_obj.insert_knot_u(param, r);
+        int knot_span = find_span(static_cast<int>(temp_obj._size[0]), _degree[0], param, temp_obj._knots_u, false) + 1;
+        std::vector<double> surf1_kv(temp_obj._knots_u.begin(), temp_obj._knots_u.begin() + knot_span);
+        std::vector<double> surf2_kv(temp_obj._knots_u.begin() + knot_span, temp_obj._knots_u.end());
+        surf1_kv.push_back(param);
+        for (int j = 0; j <= _degree[0]; ++j) {
+            surf2_kv.insert(surf2_kv.begin(), param);
+        }
+        std::vector<std::vector<vec4>> surf1_ctrlpts(temp_obj._control_points.begin(), temp_obj._control_points.begin() + ks + r);
+        std::vector<std::vector<vec4>> surf2_ctrlpts(temp_obj._control_points.begin() + ks + r - 1, temp_obj._control_points.end());
+        NURBSSurface surf1(surf1_ctrlpts, {_degree[0], _degree[1]}, surf1_kv, _knots_v);
+        NURBSSurface surf2(surf2_ctrlpts, {_degree[0], _degree[1]}, surf2_kv, _knots_v);
+        return {surf1, surf2};
+    }
+    std::pair<NURBSSurface, NURBSSurface> split_surface_v(double param, double tol = 1e-7) const {
+        if (param <= _interval[1][0] || param >= _interval[1][1] || std::fabs(param - _interval[1][0]) <= tol || std::fabs(param - _interval[1][1]) <= tol) {
+            throw std::invalid_argument("Cannot split from the domain edge");
+        }
+        int ks = find_span(static_cast<int>(_size[1]), _degree[1], param, _knots_v, false) - _degree[1] + 1;
+        int s = find_multiplicity(param, _knots_v);
+        int r = _degree[1] - s;
+        NURBSSurface temp_obj = *this;
+        temp_obj.insert_knot_v(param, r);
+        int knot_span = find_span(static_cast<int>(temp_obj._size[1]), _degree[1], param, temp_obj._knots_v, false) + 1;
+        std::vector<double> surf1_kv(temp_obj._knots_v.begin(), temp_obj._knots_v.begin() + knot_span);
+        std::vector<double> surf2_kv(temp_obj._knots_v.begin() + knot_span, temp_obj._knots_v.end());
+        surf1_kv.push_back(param);
+        for (int j = 0; j <= _degree[1]; ++j) {
+            surf2_kv.insert(surf2_kv.begin(), param);
+        }
+        std::vector<std::vector<vec4>> surf1_ctrlpts(_size[0]);
+        std::vector<std::vector<vec4>> surf2_ctrlpts(_size[0]);
+        for (std::size_t i = 0; i < _size[0]; ++i) {
+            surf1_ctrlpts[i].assign(temp_obj._control_points[i].begin(), temp_obj._control_points[i].begin() + ks + r);
+            surf2_ctrlpts[i].assign(temp_obj._control_points[i].begin() + ks + r - 1, temp_obj._control_points[i].end());
+        }
+        NURBSSurface surf1(surf1_ctrlpts, {_degree[0], _degree[1]}, _knots_u, surf1_kv);
+        NURBSSurface surf2(surf2_ctrlpts, {_degree[0], _degree[1]}, _knots_u, surf2_kv);
+        return {surf1, surf2};
+    }
+private:
+    std::array<int, 2> _degree;
+    std::array<std::size_t, 2> _size;
+    std::array<std::array<double, 2>, 2> _interval;
+    std::vector<std::vector<vec4>> _control_points;
+    std::vector<double> _knots_u;
+    std::vector<double> _knots_v;
+    void _update_interval() noexcept {
+        _interval[0][0] = _knots_u[_degree[0]];
+        _interval[0][1] = _knots_u[_knots_u.size() - _degree[0] - 1];
+        _interval[1][0] = _knots_v[_degree[1]];
+        _interval[1][1] = _knots_v[_knots_v.size() - _degree[1] - 1];
+    }
+};
 }
 
 
