@@ -678,7 +678,7 @@ namespace cmmcore {
         std::vector<vec4> temp(degree + 1, vec4(0.,0.,0.,0.));
 
         // Copy unaffected control points
-    for (int i = 0; i <= span - degree; ++i) {
+        for (int i = 0; i <= span - degree; ++i) {
             result[i] = ctrlpts[i];
         }
         for (int i = span - s; i < n; ++i) {//for (int i = span - s + 1; i <= n; ++i) {
@@ -686,15 +686,15 @@ namespace cmmcore {
         }
 
         // Copy affected control points
-    for (int i = 0; i <= degree - s; ++i) {
+        for (int i = 0; i <= degree - s; ++i) {
             temp[i] = ctrlpts[span - degree + i];
         }
 
         // Knot insertion algorithm
         for (int j = 1; j <= num; ++j) {
             int L = span - degree + j;
-        for (int i = 0; i <= degree - j - s; ++i) {
-            double alpha = knot_insertion_alpha(u, knots, span, i, L);
+            for (int i = 0; i <= degree - j - s; ++i) {
+                double alpha = knot_insertion_alpha(u, knots, span, i, L);
                 for (int idx = 0; idx < dim; ++idx) {
                     temp[i][idx] = alpha * temp[i + 1][idx] + (1.0 - alpha) * temp[i][idx];
                 }
@@ -710,7 +710,7 @@ namespace cmmcore {
 
         // Copy remaining affected control points
         int L = span - degree + num;
-    for (int i = L + 1; i < span - s + 1; ++i) {
+        for (int i = L + 1; i < span - s + 1; ++i) {
             result[i] = temp[i - L];
         }
 
@@ -731,7 +731,7 @@ namespace cmmcore {
         std::vector<vec4> temp(degree + 1, vec4(0.,0.,0.,0.));
 
         // Copy unaffected control points
-    for (int i = 0; i <= span - degree; ++i) {
+        for (int i = 0; i <= span - degree; ++i) {
             result[i] = ctrlpts[i];
         }
         for (int i = span - s; i < n; ++i) {//for (int i = span - s + 1; i <= n; ++i) {
@@ -739,15 +739,15 @@ namespace cmmcore {
         }
 
         // Copy affected control points
-    for (int i = 0; i <= degree - s; ++i) {
+        for (int i = 0; i <= degree - s; ++i) {
             temp[i] = ctrlpts[span - degree + i];
         }
 
         // Knot insertion algorithm
         for (int j = 1; j <= num; ++j) {
             int L = span - degree + j;
-        for (int i = 0; i <= degree - j - s; ++i) {
-            double alpha = knot_insertion_alpha(u, knots, span, i, L);
+            for (int i = 0; i <= degree - j - s; ++i) {
+                double alpha = knot_insertion_alpha(u, knots, span, i, L);
                 for (int idx = 0; idx < dim; ++idx) {
                     temp[i][idx] = alpha * temp[i + 1][idx] + (1.0 - alpha) * temp[i][idx];
                 }
@@ -763,7 +763,7 @@ namespace cmmcore {
 
         // Copy remaining affected control points
         int L = span - degree + num;
-    for (int i = L + 1; i < span - s + 1; ++i) {
+        for (int i = L + 1; i < span - s + 1; ++i) {
             result[i] = temp[i - L];
         }
 
@@ -1012,6 +1012,5 @@ namespace cmmcore {
         return {new_ctrlpts, new_kv};
     }
 }
-
 
 #endif //NURBS_UTILS_H

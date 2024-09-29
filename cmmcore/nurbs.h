@@ -229,7 +229,7 @@ namespace cmmcore {
             if (param <= _interval[0] || param >= _interval[1] ||
                 std::fabs(param - _interval[0]) <= 1e-12 || std::fabs(param - _interval[1]) <= 1e-12) {
                 throw std::invalid_argument("Cannot split from the domain edge.");
-            }
+                }
 
             int n_ctrlpts = static_cast<int>(_control_points.size());
             auto ks = find_span(n_ctrlpts, _degree, param, _knots, false) - _degree + 1;
@@ -361,7 +361,6 @@ namespace cmmcore {
             }
         }
     };
-
 
     class NURBSSurface {
     };
