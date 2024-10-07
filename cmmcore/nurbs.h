@@ -198,7 +198,7 @@ namespace cmmcore {
         }
 
         // Insert knots into the curve
-        inline void insert_knot(double t, int count) {
+        void insert_knot(double t, int count) {
             int n = static_cast<int>(_control_points.size());
             int new_count = n + count;
             const std::vector<vec4> cpts = _control_points;
@@ -225,7 +225,7 @@ namespace cmmcore {
         }
 
         // Split the curve at a given parameter value
-        inline std::pair<NURBSCurve, NURBSCurve> split(const double param, const bool normalize_knots = false) const {
+        std::pair<NURBSCurve, NURBSCurve> split(const double param, const bool normalize_knots = false) const {
             if (param <= _interval[0] || param >= _interval[1] ||
                 std::fabs(param - _interval[0]) <= 1e-12 || std::fabs(param - _interval[1]) <= 1e-12) {
                 throw std::invalid_argument("Cannot split from the domain edge.");
@@ -285,19 +285,26 @@ namespace cmmcore {
         }
 
         // Evaluate a point on the NURBS curve at parameter t
-        void evaluate(double t, vec3 &result) const {
+        void evaluate(const double t, vec3 &result) const {
             int n = static_cast<int>(_control_points.size()) - 1;
-            vec4 res = {0.0, 0.0, 0.0, 0.0};
 
+            result.set(0,0,0);
             // Assume curve_point is already implemented
-            curve_point(n, _degree, _knots, _control_points, t, res, _periodic);
+            curve_point(n, _degree, _knots, _control_points, t, result, _periodic);
 
-            result[0] = res[0];
-            result[1] = res[1];
-            result[2] = res[2];
         }
 
-        const std::vector<vec4> get_control_points() {
+        vec3& operator()(const double t, vec3& result) const {
+            evaluate(t, result);
+            return result;
+        }
+        vec3 operator()(const double t) const {
+            vec3 result(0);
+            evaluate(t, result);
+            return result;
+        }
+
+        std::vector<vec4> get_control_points() {
             return _control_points;
         }
 
@@ -400,7 +407,7 @@ public:
         std::fill(_knots_v.end() - _degree[1], _knots_v.end(), static_cast<double>(nv - _degree[1]));
         _update_interval();
     }
-    void evaluate(double u, double v, vec4& result) const noexcept {
+    void evaluate(double u, double v, vec3& result) const noexcept {
         surface_point(_size[0] - 1, _degree[0], _knots_u, _size[1] - 1, _degree[1], _knots_v, _control_points, u, v, 0, 0, result);
     }
     void insert_knot_u(double t, int count) {

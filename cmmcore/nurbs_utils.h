@@ -134,29 +134,29 @@ namespace cmmcore {
      */
     inline void curve_point(const int n, const int p, const std::vector<double> &U,
                             const std::vector<vec4> &P, double u,
-                            vec4 &result, const bool is_periodic) noexcept {
-        int pp = p + 1;
-        result.set(0.,0.,0.,0.); // Initialize result with 4 zeros
+                            vec3 &result, const bool is_periodic) noexcept {
+        const int pp = p + 1;
+        result.set(0.,0.,0.); // Initialize result with 4 zeros
 
-        int span = find_span(n, p, u, U, is_periodic);
+        const int span = find_span(n, p, u, U, is_periodic);
         std::vector<double> N(pp, 0.0);
         basis_funs(span, u, p, U, N);
 
         double sum_of_weights = 0.0;
 
         for (int i = 0; i < pp; ++i) {
-            int idx = span - p + i;
-            double b = N[i] * P[idx][3];
+            const int idx = span - p + i;
+            const double b = N[i] * P[idx].w;
             sum_of_weights += b;
-            result[0] += b * P[idx][0];
-            result[1] += b * P[idx][1];
-            result[2] += b * P[idx][2];
+            result.x += b * P[idx].x;
+            result.y += b * P[idx].y;
+            result.z += b * P[idx].z;
         }
 
-        result[0] /= sum_of_weights;
-        result[1] /= sum_of_weights;
-        result[2] /= sum_of_weights;
-        result[3] = 1.0;
+        result.x /= sum_of_weights;
+        result.y /= sum_of_weights;
+        result.z /= sum_of_weights;
+
     }
 
 
@@ -460,7 +460,7 @@ namespace cmmcore {
                               const std::vector<double> &V,
                               const std::vector<std::vector<vec4> > &Pw, double u,
                               const double v, const bool periodic_u, const bool periodic_v,
-                              vec4 &result) {
+                              vec3 &result) {
         int uspan = find_span(n, p, u, U, periodic_u);
         int vspan = find_span(m, q, v, V, periodic_v);
 
@@ -470,7 +470,7 @@ namespace cmmcore {
         basis_funs(uspan, u, p, U, Nu);
         basis_funs(vspan, v, q, V, Nv);
 
-        int dim = static_cast<int>(Pw[0][0].size());
+        const int dim = static_cast<int>(Pw[0][0].size());
         std::vector<vec4> temp(q + 1, vec4( 0.0,0.0,0.0,.0));
 
         // Compute the temporary points
@@ -505,7 +505,7 @@ namespace cmmcore {
         double w = Sw[dim - 1];
         assert(w != 0.0 && "Weight w cannot be zero in surface_point.");
 
-        result.resize(dim - 1);
+
         for (int d = 0; d < dim - 1; ++d) {
             result[d] = Sw[d] / w;
         }
@@ -723,7 +723,7 @@ namespace cmmcore {
     ) {
 
         int n = static_cast<int>(ctrlpts.size());//static_cast<int>(ctrlpts.size()) - 1;
-        int nq = n + num; //int nq = n + num + 1;
+        //int nq = n + num; //int nq = n + num + 1;
 
         int dim = static_cast<int>(ctrlpts[0].size());
 

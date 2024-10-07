@@ -25,7 +25,7 @@ int main() {
     bool is_periodic = false;
 
     std::vector<vec4> CK;  // To store the computed derivatives
-    vec4 result;
+    vec3 result;
     curve_derivs_alg1(n, p, U, P, u, d, CK, is_periodic);
     curve_point(n,p,U,P,u,result,is_periodic);
     // Output the computed derivatives

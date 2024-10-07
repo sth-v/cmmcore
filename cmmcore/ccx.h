@@ -23,7 +23,6 @@ SOFTWARE.
 #ifndef CCX_H
 #define CCX_H
 #include "cmmcore/nurbs.h"
-#include <stack>
 namespace cmmcore {
     /**
     * @brief Recursive intersection detection algorithm for two NURBS curves.
@@ -61,7 +60,8 @@ namespace cmmcore {
     *    split in half, and the intersection test is applied to the four combinations
     *    of the split segments (`a1, b1` and `a2, b2`).
     *
-    * @note
+    * @remarks
+    * :
     * - The function assumes that the `rebuildAABB`, `_update_interval`, `aabb`, and `interval` methods are
     *   defined for the `NURBSCurve` class.
     * - This algorithm uses an adaptive refinement approach, where curves are split recursively

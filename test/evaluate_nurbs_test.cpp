@@ -21,7 +21,7 @@ int main() {
     double u = 0.3;     // Parameter value
     bool is_periodic = false;
 
-    vec4 result;  // To store the computed point
+    vec3 result;  // To store the computed point
     curve_point(n, p, U, P, u, result, is_periodic);
 
     std::cout << "Computed curve point: ("
