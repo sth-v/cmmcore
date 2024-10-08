@@ -6,8 +6,9 @@ from libcpp.string cimport string
 from libcpp.vector cimport vector
 from libcpp.pair cimport pair
 from libcpp cimport bool
-
-cdef extern from "bvh.hpp":
+from libcpp.memory cimport unique_ptr
+from cmmcore.vec cimport vec3,vec4
+cdef extern from "bvh.hpp"  namespace "cmmcore" nogil:
 
 
     cdef cppclass AABB:

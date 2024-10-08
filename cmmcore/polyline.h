@@ -29,10 +29,16 @@ SOFTWARE.
 #include <unordered_set>
 #include <cmath>
 #include <limits>
-#include "cmmcore/vec.h" // Include the provided vec3 class
+#ifdef CYTHON_ABI
+#include "vec.h"
+#else
+#include "cmmcore/vec.h"
+#endif
+
 namespace cmmcore{
+
 // Define epsilon for distance comparison
-const double eps = CMMCORE_DECIMALS;
+const double eps = std::numeric_limits<double>::epsilon();
 
 // Quantization function for spatial hashing
 struct PointKey {

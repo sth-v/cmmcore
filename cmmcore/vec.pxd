@@ -1,8 +1,11 @@
 # cython: language_level=3
 # distutils: language = c++
 cimport cython
+from libcpp.vector cimport vector
+from libcpp.string cimport string
+from libcpp cimport bool
 
-cdef extern from "vec.h" nogil:
+cdef extern from "vec.h"  namespace "cmmcore" nogil:
 
 
     cdef cppclass vec3:
@@ -11,18 +14,16 @@ cdef extern from "vec.h" nogil:
         double z
         vec3()
         vec3(const double value)
-        vec3(const array[double, 3]& arr)
+        vec3(const double[ 3]& arr)
         vec3(const double x, const double y, const double z)
         size_t size() const
         void set(double x1, double y1, double z1)
-        void set(array[double, 3]& values)
+        void set(double[3]& values)
         void set(const vec3& values)
         bool operator==(const vec3& other) const
         double operator[](const size_t i) const
         double& operator[](const size_t i)
         vec3 operator-() const
-        void operator-=(const vec3& b)
-        void operator+=(const vec3& b)
         double dot(const vec3& b) const
         double dot(const double _x, const double _y, const double _z) const
         vec3 cross(const vec3& b) const
@@ -57,22 +58,20 @@ cdef extern from "vec.h" nogil:
         double w
         vec4()
         vec4(const double value)
-        vec4(const array[double, 4]& arr)
+        vec4(const double[4]& arr)
         vec4(const double x, const double y, const double z, const double w)
         vec4(const vec4& other)
         vec3 to_vec3() const
         vec3& to_vec3(vec3& other) const
         size_t size() const
         void set(double x1, double y1, double z1, double w1)
-        void set(array[double, 4]& values)
+        void set(double[4]& values)
         void set(const vec4& values)
         void set(const vec3& values)
         bool operator==(const vec4& other) const
         double operator[](const size_t i) const
         double& operator[](const size_t i)
         vec4 operator-() const
-        void operator-=(const vec4& b)
-        void operator+=(const vec4& b)
         double dot(const vec4& b) const
         vec4 cross(const vec4& b) const
         void cross(const vec4& b, vec4& result) const
@@ -97,7 +96,6 @@ cdef extern from "vec.h" nogil:
     string format_vec3(const vec3& v)
     string format_vec3vec(vector[vec3]& vecs)
     double dot_product(const vec3& a, const vec3& b)
-    void dot_product(const vec3& v, const Vectors3& vecs, double* result)
     double mag2(const vec3& a)
     double dot(const vec3& a, const vec3& b)
     double dist(const vec3& a, const vec3& b)

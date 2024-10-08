@@ -1,4 +1,4 @@
-cdef extern from "polyline.h":
+cdef extern from "polyline.h"  namespace "cmmcore" nogil:
     
     # Forward declarations
     cdef cppclass vec3:

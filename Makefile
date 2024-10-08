@@ -1,4 +1,4 @@
-SUBDIRS := test # mc_collision
+SUBDIRS := test
 
 all: $(SUBDIRS)
 

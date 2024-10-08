@@ -11,8 +11,14 @@
 #include <cstdint>
 #include <cstring>
 #include <stdexcept>
+
+#ifdef CYTHON_ABI
+#include "vec.h"
+#include "nurbs.h"
+#else
 #include "cmmcore/vec.h"
 #include "cmmcore/nurbs.h"
+#endif
 
 namespace cmmcore {
     // Serialize an integer

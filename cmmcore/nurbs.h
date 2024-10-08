@@ -13,8 +13,17 @@
 #include <iterator>
 #include <ranges>
 #include <cassert>
+
+#ifdef CYTHON_ABI
+#include "nurbs_utils.h"
+#include "bvh.hpp"
+#else
 #include "cmmcore/nurbs_utils.h"
 #include "cmmcore/bvh.hpp"
+
+#endif
+
+
 
 
 namespace cmmcore {

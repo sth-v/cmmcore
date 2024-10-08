@@ -46,7 +46,11 @@ processors.
 
 #ifndef BVH_HPP
 #define BVH_HPP
+#ifdef CYTHON_ABI
+#include "vec.h"
+#else
 #include "cmmcore/vec.h"
+#endif
 #include <algorithm>
 #include <stack>
 #include <array>

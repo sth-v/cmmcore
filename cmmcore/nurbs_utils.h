@@ -10,9 +10,16 @@
 #include <algorithm>
 #include <set>
 #include <stdexcept>
+
+#ifdef CYTHON_ABI
+#include "vec.h"
+#include "binom.h"
+#else
 #include "cmmcore/vec.h"
 #include "cmmcore/binom.h"
-#include "cmmcore/utils.h"
+#endif
+
+
 
 namespace cmmcore {
     /**

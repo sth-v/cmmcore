@@ -22,7 +22,12 @@ SOFTWARE.
 
 #ifndef CCX_H
 #define CCX_H
+#ifdef CYTHON_ABI
+#include "nurbs.h"
+#else
 #include "cmmcore/nurbs.h"
+#endif
+
 namespace cmmcore {
     /**
     * @brief Recursive intersection detection algorithm for two NURBS curves.

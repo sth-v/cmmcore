@@ -1,4 +1,4 @@
-cdef extern from "quickhull.hpp":
+cdef extern from "quickhull.hpp" namespace "cmmcore" nogil:
 
     cdef cppclass quick_hull[point_iterator, value_type]:
         quick_hull(size_type, value_type const&&) except * # Deleted constructor

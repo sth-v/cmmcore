@@ -3,7 +3,7 @@ from libcpp.string cimport string
 from libcpp cimport bool
 from cmmcore.vec cimport vec4,vec3
 from cmmcore.nurbs cimport NURBSCurve
-cdef extern from "serialization.h" nogil:
+cdef extern from "serialization.h"  namespace "cmmcore" nogil:
 
 
 

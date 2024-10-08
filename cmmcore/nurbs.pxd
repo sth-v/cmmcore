@@ -2,15 +2,14 @@
 # distutils: language = c++
 cimport cython
 from libcpp.vector cimport vector
-from libcpp.array cimport array
 from libcpp.pair cimport pair
 from libcpp cimport bool
 from cmmcore.vec cimport vec3,vec4
-from cmmcore.aabb cimport AABB
+from cmmcore.bvh cimport AABB
 
 
 
-cdef extern from "nurbs.h" nogil:
+cdef extern from "nurbs.h" namespace "cmmcore" nogil:
     cdef cppclass NURBSCurve:
         NURBSCurve()
         NURBSCurve(const vector[vec4] &control_points)
@@ -32,7 +31,7 @@ cdef extern from "nurbs.h" nogil:
         void make_periodic()
         void generate_knots_periodic()
         void insert_knot(double t, int count)
-        pair[NURBSCurve, NURBSCurve] split(double param, bool normalize_knots=*) const
+        pair[NURBSCurve, NURBSCurve] split(double param, bool normalize_knots) const
         void evaluate(double t, vec3 &result) const
         const vector[vec4] get_control_points()
         void set_control_points(vector[vec4] &cpts)
@@ -40,19 +39,19 @@ cdef extern from "nurbs.h" nogil:
         void set_degree(int val)
         const vector[double] get_knots()
         void set_knots(vector[double] &knots)
-        array[double, 2] interval()
+        double[2] interval()
         AABB &aabb()
         void rebuildAABB()
 
     cdef cppclass NURBSSurface:
-        NURBSSurface(const vector[vector[vec4]] &control_points, const array[int, 2] &degree, const vector[double] &knots_u = *, const vector[double] &knots_v = *)
+        NURBSSurface(const vector[vector[vec4]] &control_points, const int[2] &degree, const vector[double] &knots_u , const vector[double] &knots_v )
 
         void generate_knots_u()
         void generate_knots_v()
-        void evaluate(double u, double v, vec4 &result) const noexcept
+        void evaluate(double u, double v, vec4 &result) const
         void insert_knot_u(double t, int count)
         void insert_knot_v(double t, int count)
-        pair[NURBSSurface, NURBSSurface] split_surface_u(double param, double tol=*) const
-        pair[NURBSSurface, NURBSSurface] split_surface_v(double param, double tol=*) const
+        pair[NURBSSurface, NURBSSurface] split_surface_u(double param, double tol) const
+        pair[NURBSSurface, NURBSSurface] split_surface_v(double param, double tol) const
 
         void _update_interval() noexcept

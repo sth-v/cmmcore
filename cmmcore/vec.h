@@ -34,11 +34,8 @@ SOFTWARE.
 #include <unordered_map>
 #include <sstream>
 #include <memory>
-#ifdef __APPLE__
-  #include <sys/_types/_ssize_t.h>
-#else
 #include <cstddef>
-#endif
+
 #ifdef __ARM_NEON
 #include <arm_neon.h>
 #elif defined(__x86_64__) || defined(_M_X64)
