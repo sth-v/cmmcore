@@ -5,8 +5,6 @@ from cmmcore.vec cimport vec4,vec3
 from cmmcore.nurbs cimport NURBSCurve
 cdef extern from "serialization.h"  namespace "cmmcore" nogil:
 
-
-
     # Function declarations
     void serializeInt(vector[uint8_t]& buffer, int value)    
     int deserializeInt(const uint8_t*& data)
