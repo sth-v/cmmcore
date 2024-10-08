@@ -74,3 +74,12 @@ cxx_test = executable('cxx_test',
 
 test('cxx_test',
      cxx_test)
+
+# monomial_test
+monomial_test = executable('monomial_test',
+               'monomial_test.cpp',
+               include_directories : my_inc,
+               install : false
+)
+test('monomial_test',
+     monomial_test)
