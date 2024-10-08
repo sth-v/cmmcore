@@ -4,7 +4,13 @@
 
 #ifndef MONOMIAL_H
 #define MONOMIAL_H
+#ifdef CYTHON_ABI
+#include "matrix.h"
+#include "binom.h"
+#else
 #include "cmmcore/matrix.h"
+#include "cmmcore/binom.h"
+#endif
 namespace cmmcore {
 inline Matrix bpmat(int n) {
     Matrix result(n + 1, n + 1);

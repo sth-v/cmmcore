@@ -9,7 +9,7 @@
 #include <stdexcept>
 #include <array>
 #include <algorithm>
-#include "cmmcore/binom.h"
+
 namespace cmmcore{
 
 
