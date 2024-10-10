@@ -22,7 +22,6 @@ namespace cmmcore{
 
 class GaussMap {
 
-
     public:
     NURBSSurface surf;
     std::vector<vec2> hull;
@@ -55,21 +54,25 @@ class GaussMap {
   void build(const NURBSSurface & srf) {
 
     //Tensor3D control_points(srf._size[0], Matrix(srf._size[1], 3));
+
+      auto mono=Monomial2D(srf);
       Monomial2D normal;
-      Monomial2D mono=Monomial2D(surf);
       mono.computeNormal(normal);
-      mono.to_bezier(surf);
-      hull=std::vector<vec2>();
-      std::vector<vec2> pts{};
+      normal.to_bezier(surf);
+
+
+
+      std::vector<vec3>flatcpts=surf.control_points_flat3d();
+      std::vector<vec2> pts(flatcpts.size());
       pts.resize(surf._size[0]*surf._size[1]);
-      auto flatcpts=surf.control_points_flat3d();
-      for (int i = 0; i < (surf._size[0]*surf._size[1]); i++) {
-        auto& pt=flatcpts[i];
-        pt.unitize();
-        cartesian_to_spherical(pt, pts[i]);
+
+      for (int i = 0; i < (flatcpts.size()); i++) {
+
+        flatcpts[i].unitize();
+        cartesian_to_spherical(flatcpts[i], pts[i]);
       }
 
-      hull=convex_hull2d(pts);
+      hull=std::move(convex_hull2d(pts));
 
 
   }
