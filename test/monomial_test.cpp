@@ -11,6 +11,7 @@
 
 #include "cmmcore/monomial.h"
 #include <cmmcore/nurbs.h>
+#include <cmmcore/separability.h>
 using namespace cmmcore;
 
 int main() {
