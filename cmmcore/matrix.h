@@ -14,11 +14,11 @@ namespace cmmcore{
 
 
 class Matrix {
-private:
+public:
     std::vector<double> data;
     size_t rows, cols;
 
-public:
+    Matrix()=default;
     Matrix(size_t r, size_t c) : rows(r), cols(c), data(r * c, 0.0) {}
 
     double& operator()(size_t i, size_t j) {
@@ -112,8 +112,59 @@ public:
 };
 
 using Tensor3D = std::vector<Matrix>;
+template <class T>
+class Matrix2DVec {
+public:
+    std::vector<T> data;
+    size_t rows, cols;
+    using  value_type=T;
+    Matrix2DVec(): rows(0), cols(0), data({}){}
+    Matrix2DVec(size_t r, size_t c) : rows(r), cols(c), data(r * c) {
 
+    }
+
+    value_type& operator()(size_t i, size_t j)  {
+        return data[i * cols + j];
+    }
+    value_type operator()(size_t i, size_t j)  const {
+        return data[i * cols + j];
+    }
+    
+    size_t getRows() const { return rows; }
+    size_t getCols() const { return cols; }
+    Matrix2DVec transpose() const {
+        Matrix2DVec result(cols, rows);
+        for (size_t i = 0; i < rows; ++i) {
+            for (size_t j = 0; j < cols; ++j) {
+                result(j, i) = (*this)(i, j);
+            }
+        }
+        return result;
+    }
+    void resize(size_t r, size_t c) {
+        std::vector<T>data_new(r * c);
+        for (size_t i = 0; i < r; ++i) {
+            for (size_t j = 0; j < c; ++j) {
+                data_new[i * c + j] = (*this)(i, j);
+            }
+        }
+        rows = r;
+        cols = c;
+        data.resize(r * c);
+        for (size_t i = 0; i < r; ++i) {
+            for (size_t j = 0; j < c; ++j) {
+                (*this)(i, j) = data_new[i * c + j];
+            }
+        }
+
+    }
+
+
+ 
+};
 }
 
 
 #endif //MATRIX_H
+
+

@@ -1,4 +1,4 @@
-project('cmmcore', 'cpp', default_options : ['cpp_std=c++20','unity=on', 'optimization=3', 'buildtype=release'])
+project('cmmcore', 'cpp', default_options : ['cpp_std=c++17', 'optimization=3', 'buildtype=release'])
 # Create an environment object
 env = environment()
 # Extend the PATH variable
@@ -31,7 +31,9 @@ libcmmcore = shared_library('cmmcore',
    'cmmcore/ccx.h',
                             'cmmcore/binom.h',
                             'cmmcore/vec.h',
-                            'cmmcore/quickhull.hpp',
+                            'cmmcore/convexhull.h',
+      'cmmcore/polygon.h',
+      'cmmcore/polyline.h',
                             version : '0.1.4',
                              install : false,
                             include_directories : my_inc)

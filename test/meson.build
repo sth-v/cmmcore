@@ -83,3 +83,37 @@ monomial_test = executable('monomial_test',
 )
 test('monomial_test',
      monomial_test)
+# chull2d_test
+chull2d_test = executable('chull2d_test',
+                          'chull2d_test.cpp',
+                          include_directories : my_inc,
+                          install : false
+)
+test('chull2d_test',
+     chull2d_test)
+
+# polygon_test
+polygon_test = executable('polygon_test',
+                          'polygon_test.cpp',
+                          include_directories : my_inc,
+                          install : false
+)
+test('polygon_test',
+     polygon_test)
+# gauss_map_test
+gauss_map_test = executable('gauss_map_test',
+                            'gauss_map_test.cpp',
+                            include_directories : my_inc,
+                            install : false
+)
+test('gauss_map_test',
+     gauss_map_test)
+
+# ssx_test
+ssx_test = executable('ssx_test',
+                      'ssx_test.cpp',
+                      include_directories : my_inc,
+                      install : false
+)
+test('ssx_test',
+     ssx_test)

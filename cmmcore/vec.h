@@ -59,7 +59,71 @@ struct Vectors3 {
   double* z;
 
 };
+struct vec2 {
+  double x,y;
+  vec2() : x(0), y(0) {}
+  vec2(const double value) : x(value), y(value) {}
+  vec2(const double v1,const double v2 ) : x(v1), y(v2) {}
+  vec2(const std::array<double,2>& arr) : x(arr[0]), y(arr[1]) {}
+  vec2(const vec2& from, const vec2& to) : x(to.x - from.x), y(to.y - from.y) {}
+  size_t size() const {
+    return 2;
+  }
+  void set(const double v1) {
+    x = v1;
+    y=v1;
+  }
+  void set(const double v1,const double v2) {
+    x = v1;
+    y=v2;
+  }
+  void set(const vec2 v1) {
+    x = v1.x;
+    y=v1.y;
+  }
+  void set(const std::array<double, 2>& arr) {
+    x = arr[0];
+    y=arr[1];
+  }
+  bool operator==(const vec2& other) const {
 
+    return std::abs(x - other.x) < std::numeric_limits<double>::epsilon() &&
+           std::abs(y - other.y) < std::numeric_limits<double>::epsilon();
+
+  }
+  double& operator[](const size_t index) {
+    switch (index) {
+      case 0:
+        return x;
+      case 1:
+        return y;
+      default:
+        throw std::out_of_range("index out of range");
+    }
+  }
+    double operator[](const size_t index) const {
+      switch (index) {
+        case 0:
+          return x;
+        case 1:
+          return y;
+        default:
+          throw std::out_of_range("index out of range");
+      }
+    }
+  double dot(const vec2& other) const {
+    return x * other.x + y * other.y;
+  }
+
+};
+
+inline double cross(const vec2& a, const vec2& b) {
+    return a.x * b.y - a.y * b.x;
+  }
+
+  inline double dot(const vec2& a, const vec2& b) {
+    return a.dot(b);
+  }
 struct vec3 {
   double x, y, z;
 
@@ -256,11 +320,15 @@ struct vec3 {
 };
 
   // Quantize to CMMCORE_DECIMALS decimal places
+
  inline int quantize(double value, int decimals) {
     return static_cast<int>(value *  decimals);
 
 
   }
+
+std::hash<double> doubleHash;
+
 struct Vec3Hash {
   size_t operator()(const vec3& v) const {
     int qx = quantize(v.x, CMMCORE_DECIMALS);
@@ -295,7 +363,7 @@ inline std::string format_vec3(const vec3 &v) {
 }
 inline std::string format_vec3vec(std::vector<vec3> &vecs) {
   std::string repr("[");
-  for (auto& v : vecs) {
+  for (const auto& v : vecs) {
     repr+=format_vec3(v);
     repr+=",";
   }
@@ -404,15 +472,51 @@ inline void assign(const vec3 &a, double &a0, double &a1, double &a2)
 
   a0=a.x; a1=a.y; a2=a.z;
 }
-template<class T>
-inline void assign(const std::array<T, 3> &a, T &a0, T &a1, T &a2)
-{
 
 
-  a0=a[0]; a1=a[1]; a2=a[2];
+inline void cartesian_to_spherical(const vec3& xyz,vec3& rtp ) {
+
+
+
+    double XsqPlusYsq = xyz.x *  xyz.x +  xyz.y *  xyz.y;
+
+    rtp.x= std::sqrt(XsqPlusYsq +  xyz.z *  xyz.z);        // Radius r
+    rtp.y = std::atan2(std::sqrt(XsqPlusYsq), xyz.z); // Polar angle θ (theta)
+    rtp.z = std::atan2(xyz.y, xyz.x);                     // Azimuthal angle φ (phi)
+  }
+
+  inline void spherical_to_cartesian(const vec3& rtp ,vec3& xyz) {
+  double r = rtp.x;
+  double theta = rtp.y; // Polar angle
+  double phi = rtp.z;   // Azimuthal angle φ
+  xyz.x = r * std::sin(theta) * std::cos(phi);
+    xyz.y = r * std::sin(theta) * std::sin(phi);
+   xyz.z = r * std::cos(theta);
 }
 
-  
+  inline void cartesian_to_spherical(const vec3& xyz,vec2& tp ) {
+  tp.x = std::atan2(std::sqrt(xyz.x *  xyz.x +  xyz.y *  xyz.y), xyz.z); // Polar angle θ (theta)
+  tp.y = std::atan2(xyz.y, xyz.x);
+}
+
+  inline void spherical_to_cartesian(const vec2& tp ,vec3& xyz) {
+  double r = 1;
+  double theta = tp.x; // Polar angle
+  double phi = tp.y;   // Azimuthal angle φ
+  xyz.x = r * std::sin(theta) * std::cos(phi);
+  xyz.y = r * std::sin(theta) * std::sin(phi);
+  xyz.z = r * std::cos(theta);
+}
+  inline void cartesian_to_spherical(const std::vector<vec3>& xyz,std::vector<vec2>& tp ) {
+  tp.resize(xyz.size());
+  for (size_t i = 0; i < xyz.size(); ++i) {
+    tp[i].x = std::atan2(std::sqrt(xyz[i].x *  xyz[i].x +  xyz[i].y *  xyz[i].y), xyz[i].z); // Polar angle θ (theta)
+    tp[i].y = std::atan2(xyz[i].y, xyz[i].x);
+  }
+
+}
+
+
 struct vec4 {
   double x, y, z, w;
 
@@ -698,6 +802,11 @@ struct vec4 {
     }
 
 };
-
+  inline void cross(const vec3& a, const vec3& b, vec4& result) {
+    result.x=a.y*b.z - a.z*b.y;
+    result.y=a.z*b.x - a.x*b.z;
+    result.z=a.x*b.y - a.y*b.x;
+    result.w=1.0;
+  }
 }
 #endif //VEC_H
