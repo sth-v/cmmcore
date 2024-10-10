@@ -34,23 +34,8 @@ class GaussMap {
         build(srf);
 
       }
-    void buildv2(const NURBSSurface& srf) {
-      NURBSSurface a,b;
-      srf.getDerivativeSurface(0,a);
-      srf.getDerivativeSurface(1,b);
-      surfaceCrossProduct(a,b,surf);
 
-      std::vector<vec2> pts(surf._size[0]*surf._size[1]);
-      auto flatcpts=surf.control_points_flat3d();
-      for (int i = 0; i < (surf._size[0]*surf._size[1]); i++) {
-        auto& pt=flatcpts[i];
-        pt.unitize();
-        cartesian_to_spherical(pt, pts[i]);
-      }
 
-      hull=convex_hull2d(pts);
-
-    }
   void build(const NURBSSurface & srf) {
 
     //Tensor3D control_points(srf._size[0], Matrix(srf._size[1], 3));
