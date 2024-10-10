@@ -2,69 +2,71 @@
 // Created by Andrew Astakhov on 08.10.24.
 //
 
-#include "cmmcore/monomial.h"
+
 
 #include <cassert>
 #include <iostream>
 #include <iomanip>
 #include <cmath>
+
+#include "cmmcore/monomial.h"
+#include <cmmcore/nurbs.h>
 using namespace cmmcore;
-
-void printMatrix(const Matrix& mat, const std::string& name) {
-    std::cout << name << ":" << std::endl;
-    for (size_t i = 0; i < mat.getRows(); ++i) {
-        for (size_t j = 0; j < mat.getCols(); ++j) {
-            std::cout << std::setw(10) << std::setprecision(4) << mat(i, j) << " ";
-        }
-        std::cout << std::endl;
-    }
-    std::cout << std::endl;
-}
-
-void printTensor3D(const Tensor3D& tensor, const std::string& name) {
-    std::cout << name << ":" << std::endl;
-    for (size_t d = 0; d < tensor.size(); ++d) {
-        std::cout << "Dimension " << d << ":" << std::endl;
-        printMatrix(tensor[d], "");
-    }
-}
 
 int main() {
     // Create a simple 3x3 Bézier surface patch
-    Tensor3D control_points(3, Matrix(3, 3));
+     NURBSSurface surf = NURBSSurface({{{0.62332799, 0.21476556, 0.75989061, 1.        },
+       {0.13268676, 0.85092707, 0.19604599, 1.        },
+       {0.89074325, 0.64847999, 0.07050099, 1.        },
+       {0.91934447, 0.41607874, 0.52330899, 1.        }},
+      {{0.50844946, 0.88889217, 0.78646248, 1.        },
+       {0.25824996, 0.33773866, 0.46611303, 1.        },
+       {0.7197276 , 0.5685781 , 0.05564343, 1.        },
+       {0.13142747, 0.81370473, 0.33629716, 1.        }},
+      {{0.75692357, 0.64838686, 0.14546997, 1.        },
+       {0.35443106, 0.60798288, 0.11322816, 1.        },
+       {0.17406329, 0.12349951, 0.91478453, 1.        },
+       {0.06059289, 0.53419607, 0.10507294, 1.        }},
+      {{0.05756793, 0.59932455, 0.02830079, 1.        },
+       {0.17660584, 0.8646054 , 0.62055444, 1.        },
+       {0.42505789, 0.73934683, 0.41718578, 1.        },
+       {0.33858193, 0.57782595, 0.53923527, 1.        }}}, {3,3});
 
-    // Fill control points with some example values
-    for (int i = 0; i < 3; ++i) {
-        for (int j = 0; j < 3; ++j) {
-            control_points[i](j, 0) = std::sin(i * j * M_PI / 4);  // x-coordinate
-            control_points[i](j, 1) = std::cos(i * j * M_PI / 4);  // y-coordinate
-            control_points[i](j, 2) = (i + j) / 4.0;  // z-coordinate
-        }
-    }
 
-    std::cout << "Original Bézier control points:" << std::endl;
-    printTensor3D(control_points, "Control Points");
 
-    // Convert Bézier to monomial form
-    Tensor3D monomial_coeffs = bezier_to_monomial(control_points);
+
+    auto mono= Monomial2D(surf);
 
     std::cout << "Monomial coefficients:" << std::endl;
-    printTensor3D(monomial_coeffs, "Monomial Coefficients");
+    printf("[" );
+    for (auto& mono_coeff : mono.coefficients) {
+
+        printf((format_vec3vec(mono_coeff)+",").c_str());
+    }
+    printf("],\n" );
+
+    NURBSSurface surf2;
+    mono.to_bezier(surf2);
 
     // Convert monomial back to Bézier form
-    Tensor3D reconstructed_control_points = monomial_to_bezier(monomial_coeffs);
+    Monomial2D monoNormal;
+    mono.computeNormal(monoNormal);
+    std::cout << "Monomial normal coefficients:" << std::endl;
+    printf("[" );
+    for (auto& mono_coeff : monoNormal.coefficients) {
 
-    std::cout << "Reconstructed Bézier control points:" << std::endl;
-    printTensor3D(reconstructed_control_points, "Reconstructed Control Points");
+        printf((format_vec3vec(mono_coeff)+",").c_str());
+    }
+    printf("],\n" );
 
     // Calculate and print the maximum difference between original and reconstructed control points
     double max_diff = 0.0;
     for (size_t i = 0; i < 3; ++i) {
         for (size_t j = 0; j < 3; ++j) {
-            for (size_t d = 0; d < 3; ++d) {
-                double diff = std::abs(control_points[i](j, d) - reconstructed_control_points[i](j, d));
+
+                double diff = std::abs((surf._control_points[i][j].to_vec3() -surf._control_points[i][j].to_vec3()).length());
                 max_diff = std::max(max_diff, diff);
-            }
+
         }
     }
 

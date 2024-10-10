@@ -6,11 +6,14 @@
 #define MONOMIAL_H
 
 #ifdef CYTHON_ABI
+#include "vec.h"
 #include "matrix.h"
 #include "binom.h"
 #else
+#include "cmmcore/vec.h"
 #include "cmmcore/matrix.h"
 #include "cmmcore/binom.h"
+#include "cmmcore/nurbs.h"
 #endif
 
 namespace cmmcore {
@@ -119,15 +122,14 @@ namespace cmmcore {
 
     class Monomial2D {
     public:
-        int n, m;
-        Tensor2D<vec3> coefficients;
+        int n=0;
+        int m=0;
+        Tensor2D<vec3> coefficients{};
         Matrix Mu, Mv, Mu_inv, Mv_inv;
 
         Monomial2D() = default;
 
-        Monomial2D(int _n, int _m, const Tensor2D<vec3> &coeffs): n(_n),
-                                                                  m(_m),
-                                                                  coefficients(coeffs),
+        Monomial2D(int _n, int _m, const Tensor2D<vec3> &coeffs): n(_n),m(_m),coefficients(std::move(coeffs)),
                                                                   Mu(bpmat(n - 1)),
                                                                   Mv(bpmat(m - 1)),
                                                                   Mu_inv(std::move(Mu.inverse())),
@@ -135,12 +137,12 @@ namespace cmmcore {
         }
 
 
-        Monomial2D(int _n, int _m): n(_n), m(_m), coefficients(CMMCORE_CREATE_TENSOR2D(_n, _m, vec3, 0, 0, 0)),
+        Monomial2D(int _n, int _m): n(_n), m(_m), coefficients(std::move(CMMCORE_CREATE_TENSOR2D(_n, _m, vec3, 0, 0, 0))),
                                     Mu(bpmat(n - 1)), Mv(bpmat(m - 1)), Mu_inv(std::move(Mu.inverse())),
                                     Mv_inv(std::move(Mv.inverse())) {
         }
 
-        Monomial2D(Tensor2D<vec3> &coeffs): n(coeffs.size()), m(coeffs[0].size()), coefficients(std::move(coeffs)),
+         Monomial2D(const Tensor2D<vec3> &coeffs): n(coeffs.size()), m(coeffs[0].size()), coefficients(std::move(coeffs)),
                                             Mu(bpmat(n - 1)), Mv(bpmat(m - 1)), Mu_inv(std::move(Mu.inverse())),
                                             Mv_inv(std::move(Mv.inverse())) {
         }
@@ -150,7 +152,7 @@ namespace cmmcore {
         }
 
         Monomial2D(const NURBSSurface &surf): n(surf._size[0]), m(surf._size[1]),
-                                              coefficients(CMMCORE_CREATE_TENSOR2D(n, m, vec3, 0, 0, 0)),
+                                              coefficients(std::move(CMMCORE_CREATE_TENSOR2D(n, m, vec3, 0, 0, 0))),
                                               Mu(bpmat(n - 1)), Mv(bpmat(m - 1)), Mu_inv(std::move(Mu.inverse())),
                                               Mv_inv(std::move(Mv.inverse())) {
             Tensor2D<vec3> cpts = surf.control_points3d();
@@ -200,16 +202,16 @@ namespace cmmcore {
             surf._update_interval();
         }
 
-        void computePartialDerivative(SurfaceParameter variable, Monomial2D &result) {
+        void computePartialDerivative(const SurfaceParameter variable, Monomial2D &result) const {
             Tensor2D<vec3> coeffs;
-            compute_partial_derivative(coefficients, variable, coeffs);
+            compute_partial_derivative(this->coefficients, variable, coeffs);
             result.set(coeffs);
         }
 
-        void computeNormal(Monomial2D &result) {
+        void computeNormal(Monomial2D &result) const {
             Tensor2D<vec3> coeffs_u, coeffs_v, coeffs;
-            compute_partial_derivative(coefficients, U, coeffs_u);
-            compute_partial_derivative(coefficients, V, coeffs_v);
+            compute_partial_derivative(this->coefficients, U, coeffs_u);
+            compute_partial_derivative(this->coefficients, V, coeffs_v);
             cross(coeffs_u, coeffs_v, coeffs);
             result.set(coeffs);
         }
@@ -222,48 +224,5 @@ namespace cmmcore {
         }
     };
 
-
-    inline Tensor3D bezier_to_monomial(const Tensor3D &control_points) {
-        size_t n = control_points.size();
-        size_t m = control_points[0].getRows();
-        size_t l = control_points[0].getCols();
-
-        Matrix Mu = bpmat(n - 1);
-        Matrix Mv = bpmat(m - 1);
-
-        Tensor3D monomial_coeffs(l, Matrix(n, m));
-        for (size_t d = 0; d < l; ++d) {
-            Matrix cp_slice(n, m);
-            for (size_t i = 0; i < n; ++i) {
-                for (size_t j = 0; j < m; ++j) {
-                    cp_slice(i, j) = control_points[i](j, d);
-                }
-            }
-            monomial_coeffs[d] = Mu * cp_slice * Mv.transpose();
-        }
-
-        return monomial_coeffs;
-    }
-
-    inline Tensor3D monomial_to_bezier(const Tensor3D &monomial_coeffs) {
-        size_t n = monomial_coeffs[0].getRows();
-        size_t m = monomial_coeffs[0].getCols();
-        size_t l = monomial_coeffs.size();
-
-        Matrix Mu_inv = bpmat(n - 1).inverse();
-        Matrix Mv_inv = bpmat(m - 1).inverse();
-
-        Tensor3D control_points(n, Matrix(m, l));
-        for (size_t d = 0; d < l; ++d) {
-            Matrix bez_slice = Mu_inv * monomial_coeffs[d] * Mv_inv.transpose();
-            for (size_t i = 0; i < n; ++i) {
-                for (size_t j = 0; j < m; ++j) {
-                    control_points[i](j, d) = bez_slice(i, j);
-                }
-            }
-        }
-
-        return control_points;
-    }
 }
 #endif //MONOMIAL_H
