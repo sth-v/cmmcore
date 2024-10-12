@@ -67,7 +67,7 @@ namespace cmmcore {
     *
     * @remarks
     * :
-    * - The function assumes that the `rebuildAABB`, `_update_interval`, `aabb`, and `interval` methods are
+    * - The function assumes that the `rebuildAABB`, `update_interval`, `aabb`, and `interval` methods are
     *   defined for the `NURBSCurve` class.
     * - This algorithm uses an adaptive refinement approach, where curves are split recursively
     *   until the bounding boxes are small enough (i.e., below the given tolerance).
