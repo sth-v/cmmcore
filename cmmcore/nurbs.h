@@ -310,9 +310,21 @@ namespace cmmcore {
 
         }
         void derivative(const double t, std::vector<vec3> &result) const {
-                derivative(t,result,1);
+                derivative(t,result,result.size());
         }
+        void derivatives(const double t, vec3 &d0, vec3 &d1, vec3 &d2 ) const {
+            vec3 temp;
+            evaluate(t,d0);
+            evaluate(t-1e-5,temp);
+            evaluate(t+1e-5,d2);
+            d1.set(d2-temp);
+            d1/=2e-5;
+            d2-=(2*d0);
+            d2+=temp;
+            d2/=1e-10;
 
+
+        }
         void derivative_fdm(const double t, vec3 &result) const {
             vec3 temp;
             evaluate(t-1e-5,temp);
@@ -331,6 +343,8 @@ namespace cmmcore {
             evaluate(t+1e-5,result);
             result-=temp;
             result/=2e-5;
+
+
         }
 
 
