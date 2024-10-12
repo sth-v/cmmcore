@@ -35,7 +35,11 @@ SOFTWARE.
 #include <sstream>
 #include <memory>
 #include <cstddef>
-
+#ifdef CYTHON_ABI
+#include "limits.h"
+#else
+#include "cmmcore/limits.h"
+#endif
 #ifdef __ARM_NEON
 #include <arm_neon.h>
 #elif defined(__x86_64__) || defined(_M_X64)
@@ -43,64 +47,102 @@ SOFTWARE.
 #endif
 #include <cmath>
 namespace cmmcore {
-#define CMMCORE_DECIMALS 8
-// SIMD-friendly 3D vector
-/**
- * @brief Represents a 3D vector with support for SIMD alignment.
- *
- * Vec3 is a basic structure representing a 3D vector with SIMD-friendly 16-byte
- * alignment. It supports default construction, initialization with a scalar
- * value, and explicit initialization with individual x, y, z components.
- */
-struct Vectors3 {
-  size_t size;
-  double* x;
-  double* y;
-  double* z;
 
-};
-struct vec2 {
-  double x,y;
-  vec2() : x(0), y(0) {}
-  vec2(const double value) : x(value), y(value) {}
-  vec2(const double v1,const double v2 ) : x(v1), y(v2) {}
-  vec2(const std::array<double,2>& arr) : x(arr[0]), y(arr[1]) {}
-  vec2(const vec2& from, const vec2& to) : x(to.x - from.x), y(to.y - from.y) {}
-  size_t size() const {
-    return 2;
-  }
-  void set(const double v1) {
-    x = v1;
-    y=v1;
-  }
-  void set(const double v1,const double v2) {
-    x = v1;
-    y=v2;
-  }
-  void set(const vec2 v1) {
-    x = v1.x;
-    y=v1.y;
-  }
-  void set(const std::array<double, 2>& arr) {
-    x = arr[0];
-    y=arr[1];
-  }
-  bool operator==(const vec2& other) const {
+  // SIMD-friendly 3D vector
+  /**
+   * @brief Represents a 3D vector with support for SIMD alignment.
+   *
+   * Vec3 is a basic structure representing a 3D vector with SIMD-friendly 16-byte
+   * alignment. It supports default construction, initialization with a scalar
+   * value, and explicit initialization with individual x, y, z components.
+   */
+  struct Vectors3 {
+    size_t size;
+    double* x;
+    double* y;
+    double* z;
 
-    return std::abs(x - other.x) < std::numeric_limits<double>::epsilon() &&
-           std::abs(y - other.y) < std::numeric_limits<double>::epsilon();
-
-  }
-  double& operator[](const size_t index) {
-    switch (index) {
-      case 0:
-        return x;
-      case 1:
-        return y;
-      default:
-        throw std::out_of_range("index out of range");
+  };
+#define CMMCORE_VEC_PROJECTION(self,other) ((self).dot(other) / (other).dot(other))
+#define CMMCORE_VEC_PROJECT(self,other) other*((self).dot(other) / (other).dot(other))
+#define CMMCORE_VEC_COLLINEAR(self,other) std::abs((self).unit().dot((other).unit()))==1.
+#define CMMCORE_VEC_PARALLEL(self,other) (self).unit().dot((other).unit())==1.
+#define CMMCORE_VEC_PERP(self,other) (self).unit().dot((other).unit())==0
+  
+  struct vec2 {
+    double x,y;
+    vec2() : x(0), y(0) {}
+    vec2(const double value) : x(value), y(value) {}
+    vec2(const double v1,const double v2 ) : x(v1), y(v2) {}
+    vec2(const std::array<double,2>& arr) : x(arr[0]), y(arr[1]) {}
+    vec2(const vec2& from, const vec2& to) : x(to.x - from.x), y(to.y - from.y) {}
+    size_t size() const {
+      return 2;
     }
-  }
+    void set(const double v1) {
+      x = v1;
+      y=v1;
+    }
+    void set(const double v1,const double v2) {
+      x = v1;
+      y=v2;
+    }
+    void set(const vec2 v1) {
+      x = v1.x;
+      y=v1.y;
+    }
+    void set(const std::array<double, 2>& arr) {
+      x = arr[0];
+      y=arr[1];
+    }
+    bool operator==(const vec2& other) const {
+
+      return std::abs(x - other.x) < std::numeric_limits<double>::epsilon() &&
+             std::abs(y - other.y) < std::numeric_limits<double>::epsilon();
+
+    }
+    vec2 operator-() const {
+      return {-x, -y};
+    }
+    vec2 operator-(const vec2& other) const {
+      return {x-other.x, y-other.y};
+    }
+    vec2 operator*(const vec2& other) const {
+      return {x*other.x, y*other.y};
+    }
+    vec2 operator*(const double& val) const {
+      return {x*val, y*val};
+    }
+    void operator*=(const double& val) {
+      x*=val;
+      y*=val;
+    }
+    void operator+=(const vec2& other) {
+      x+=other.x;
+      y+=other.y;
+    }
+    void operator/=(const double& val) {
+      if (val == 0) {
+        throw std::invalid_argument("Division by zero");
+      }
+      x/=val;
+      y/=val;
+    }
+
+    void operator-=(const vec2& other) {
+      x-=other.x;
+      y-=other.y;
+    }
+    double& operator[](const size_t index) {
+      switch (index) {
+        case 0:
+          return x;
+        case 1:
+          return y;
+        default:
+          throw std::out_of_range("index out of range");
+      }
+    }
     double operator[](const size_t index) const {
       switch (index) {
         case 0:
@@ -111,11 +153,50 @@ struct vec2 {
           throw std::out_of_range("index out of range");
       }
     }
-  double dot(const vec2& other) const {
-    return x * other.x + y * other.y;
-  }
+    double dot(const vec2& other) const {
+      return x * other.x + y * other.y;
+    }
+    double sqLength() const {
+      return dot(*this);
+    }
+    double length() const {
+      return std::sqrt(dot(*this));
+    }
+    vec2 project(const vec2& other) const {
+      return CMMCORE_VEC_PROJECT(*this,other);
+    }
+    double projection(const vec2& other) const {
+      return CMMCORE_VEC_PROJECTION(*this,other);
+    }
+    void unitize() {
+      double l = length();
+      if (l==0) {
+        throw std::invalid_argument("Division by zero");
+      }
+      else {
+        x/=l;
+        y/=l;
 
-};
+      }
+    }
+    vec2 unit() const{
+      double l = length();
+      if (l==0) {
+        throw std::invalid_argument("Division by zero");
+      }
+
+
+      return {x/l, y/l};
+
+
+    }
+    bool collinear(const vec2& other) const {
+      return CMMCORE_VEC_COLLINEAR(*this,other);
+    }
+  };
+
+
+;
 
 inline double cross(const vec2& a, const vec2& b) {
     return a.x * b.y - a.y * b.x;
@@ -233,6 +314,9 @@ struct vec3 {
     return x * b.x + y * b.y + z * b.z;
 #endif
   }
+  bool operator==(const vec2& other) const{
+    return other.x==x && other.y==y;
+  }
   double dot( const double _x,const double _y,const double _z) const {
 
     return x * _x + y * _y + z * _z;
@@ -316,6 +400,12 @@ struct vec3 {
     return result;
 
     }
+  vec3 project(const vec3& other) const {
+    return CMMCORE_VEC_PROJECT(*this,other);
+  }
+  bool collinear(const vec3& other) const {
+    return CMMCORE_VEC_COLLINEAR(*this,other);
+  }
 
 };
 
@@ -328,6 +418,28 @@ struct vec3 {
   }
 
 std::hash<double> doubleHash;
+
+  struct Vec2Hash {
+    size_t operator()(const vec2& v) const {
+      int qx = quantize(v.x, CMMCORE_DECIMALS);
+      int qy = quantize(v.y,CMMCORE_DECIMALS);
+      size_t h1 = std::hash<int>()(qx);
+      size_t h2 = std::hash<int>()(qy);
+      return h1 ^ (h2 << 1) ;
+    }
+
+
+  };
+
+  struct Vec2Equal {
+    bool operator()(const vec2& a, const vec2& b) const {
+      return(
+          quantize(a.x,CMMCORE_DECIMALS) == quantize(b.x,CMMCORE_DECIMALS) &&
+          quantize(a.y,CMMCORE_DECIMALS) == quantize(b.y,CMMCORE_DECIMALS) );
+
+    }
+
+  };
 
 struct Vec3Hash {
   size_t operator()(const vec3& v) const {
@@ -586,7 +698,9 @@ struct vec4 {
     w=1.;
 
   }
-
+  vec4 project(const vec4& other) const {
+    return CMMCORE_VEC_PROJECT(*this,other);
+  }
   bool operator==(const vec4& other) const {
 
     return std::abs(x - other.x) < std::numeric_limits<double>::epsilon() &&
@@ -800,7 +914,9 @@ struct vec4 {
     return result;
 
     }
-
+  bool collinear(const vec4& other) const {
+    return CMMCORE_VEC_COLLINEAR(*this,other);
+  }
 };
   inline void cross(const vec3& a, const vec3& b, vec4& result) {
     result.x=a.y*b.z - a.z*b.y;

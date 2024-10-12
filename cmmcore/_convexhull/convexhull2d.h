@@ -9,9 +9,10 @@
 #include <algorithm>
 #include <cmath>
 #include "cmmcore/vec.h"
+
 namespace cmmcore{
 // A utility function to find next to top in a stack
-vec2 nextToTop(std::vector<vec2>& hull) {
+inline vec2 nextToTop(std::vector<vec2>& hull) {
     vec2 p = hull.back();
     hull.pop_back();
     vec2 res = hull.back();
@@ -20,14 +21,14 @@ vec2 nextToTop(std::vector<vec2>& hull) {
 }
 
 // A utility function to swap two points
-void swap(vec2& p1, vec2& p2) {
+inline void swap(vec2& p1, vec2& p2) {
     vec2 temp = p1;
     p1 = p2;
     p2 = temp;
 }
 
 // A utility function to return square of distance between p1 and p2
-double distSq(const vec2& p1, const vec2& p2) {
+inline double distSq(const vec2& p1, const vec2& p2) {
     return (p1.x - p2.x) * (p1.x - p2.x) + (p1.y - p2.y) * (p1.y - p2.y);
 }
 
@@ -36,7 +37,7 @@ double distSq(const vec2& p1, const vec2& p2) {
 // 0 --> p, q and r are collinear
 // 1 --> Clockwise
 // 2 --> Counterclockwise
-int orientation(const vec2& p, const vec2& q, const vec2& r) {
+inline int orientation(const vec2& p, const vec2& q, const vec2& r) {
     double val = (q.y - p.y) * (r.x - q.x) - (q.x - p.x) * (r.y - q.y);
     const double epsilon = 1e-9;
     if (std::abs(val) < epsilon) return 0;  // collinear
@@ -61,7 +62,7 @@ public:
 };
 
 // Prints convex hull of a set of n points.
-std::vector<vec2> convex_hull2d(std::vector<vec2>& points) {
+inline std::vector<vec2> convex_hull2d(std::vector<vec2>& points) {
     if (points.size() < 3) return points;  // Convex hull not possible with less than 3 points
 
     int n = points.size();

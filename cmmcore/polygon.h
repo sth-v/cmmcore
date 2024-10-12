@@ -8,7 +8,7 @@
 #include <cmath>
 #include <limits>
 #include <algorithm>
-
+#include <unordered_set>
 #ifdef CYTHON_ABI
 #include "vec.h"
 #else
@@ -16,17 +16,45 @@
 #endif
 
 namespace cmmcore{
+    using polygon2=std::vector<vec2>;
+    struct Normal2Hash {
+        bool operator()(const vec2& a) const {
+            auto _a=a.unit();
+
+            auto _x=quantize(_a.x,std::numeric_limits<double>::digits10);
+            auto _y=quantize(_a.y,std::numeric_limits<double>::digits10);
+            auto _x1=quantize(-_a.x,std::numeric_limits<double>::digits10);
+            auto _y1=quantize(-_a.y,std::numeric_limits<double>::digits10);
+
+            return   std::max(_x ^ (_y << 1),    _x1 ^ (_y1 << 1));
+
+        };
+    };
+    template<typename T>
+    struct NormalEqual {
+        bool operator()(const T& a, const T& b) const {
+            return a.collinear(b);
+
+        };
+    };
+
+    using Normal2Equal=NormalEqual<vec2>;
+    using UnorderedNormal2Set=std::unordered_set<vec2,Normal2Hash,Normal2Equal>;
 
 
-enum class PolygonRelationship2D {
-    INTERSECT,
-    TOUCH,
-    DISTANCE
-};
+    inline bool contains( const UnorderedNormal2Set& s, const vec2& val) {
+        return std::find(s.begin(), s.end(), val) != s.end();
+    }
+
+    enum class PolygonRelationship2D {
+        INTERSECT,
+        TOUCH,
+        DISTANCE
+    };
 
 
 
-bool isvec2Inside2d(const std::vector<vec2>& polygon, const vec2& p) {
+inline bool isvec2Inside2d(const polygon2& polygon, const vec2& p) {
     int n = polygon.size();
     bool inside = false;
     for (int i = 0, j = n - 1; i < n; j = i++) {
@@ -40,8 +68,8 @@ bool isvec2Inside2d(const std::vector<vec2>& polygon, const vec2& p) {
     return inside;
 }
 
-PolygonRelationship2D polygonRelationship2D(const std::vector<vec2>& poly1, const std::vector<vec2>& poly2) {
-    auto projectPolygon = [](const std::vector<vec2>& poly, const vec2& axis) {
+inline PolygonRelationship2D polygonRelationship2D(const polygon2& poly1, const polygon2& poly2) {
+    auto projectPolygon = [](const polygon2& poly, const vec2& axis) {
         double min = std::numeric_limits<double>::max();
         double max = std::numeric_limits<double>::lowest();
         for (const auto& p : poly) {
@@ -92,7 +120,41 @@ PolygonRelationship2D polygonRelationship2D(const std::vector<vec2>& poly1, cons
 
     return touching ? PolygonRelationship2D::TOUCH : PolygonRelationship2D::INTERSECT;
 }
+
+    inline void polygonNormals( const polygon2& polygon, std::vector<vec2>& normals, const bool normalize = false ) {
+        normals.reserve( polygon.size() );
+        for( size_t i = 0; i < polygon.size(); i++ ) {
+            size_t  j = ( i + 1 ) % polygon.size();
+            normals.emplace_back( polygon[j].y - polygon[i].y, polygon[i].x - polygon[j].x );
+            if (normalize) {
+                normals[i].unitize();
+            }
+        }
+    };
+
+
+    inline void polygonUniqueNormals( const polygon2& polygon, UnorderedNormal2Set& normals, const bool normalize = false ) {
+
+        for( size_t i = 0; i < polygon.size(); i++ ) {
+            size_t  j = ( i + 1 ) % polygon.size();
+            vec2 n={polygon[j].y - polygon[i].y, polygon[i].x - polygon[j].x};
+
+            if (contains(normals,n)) {
+                continue;
+            } else {
+                if (normalize) {
+                    n.unitize();
+                }
+                normals.insert( n);
+
+            }
+        }
+    };
+
+
+
 }
+
 
 
 #endif //POLYGON_H

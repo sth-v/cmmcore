@@ -23,7 +23,9 @@ SOFTWARE.
 #ifndef UTILS_H
 #define UTILS_H
 #include <cmath>
+#include <random>
 #include <limits>
+#include "cmmcore/vec.h"
 namespace cmmcore {
 #define EPS_DELTA 1e-12
 
@@ -41,6 +43,19 @@ inline double calc_epsilon(const double x) noexcept {
         return absolute_epsilon;
     }
     return relative_epsilon;
+}
+    inline double random_double(double const min, double const max) {static std::random_device rd;static std::mt19937 gen(rd());std::uniform_real_distribution<> dis(min, max);return static_cast<double>(dis(gen));
+}
+
+    inline vec3 random_vec3(double const min, double const max) {
+    return{random_double(min, max), random_double(min, max),random_double(min, max)};
+}
+
+    inline void random_vectors3(double const min, double const max, size_t const count, std::vector<vec3>& vecs) {
+    vecs.resize(count);
+    for (size_t i = 0; i < count; ++i) {
+        vecs[i] = random_vec3(min, max);
+    }
 }
 }
 #endif //UTILS_H
