@@ -47,13 +47,13 @@ namespace cmmcore {
         };
 
         // Constructors
-        NURBSCurve(const std::vector<vec3> &control_points, const int degree,
+        NURBSCurve(const std::vector<vec3> &_control_points, const int degree,
                    const bool periodic): _degree(degree), _periodic(periodic) {
             // Initialize control points
-            const int nnn = control_points.size();
-            _control_points.resize(nnn);
-            for (size_t i = 0; i < control_points.size(); ++i) {
-                _control_points[i].set(control_points[i]);
+            const size_t nnn = _control_points.size();
+            control_points.resize(nnn);
+            for (size_t i = 0; i < nnn; ++i) {
+                control_points[i].set(_control_points[i]);
             }
 
             // Initialize knots
@@ -69,7 +69,7 @@ namespace cmmcore {
         }
 
         NURBSCurve(const std::vector<vec4> &control_points, const int degree,
-                   bool periodic) : _control_points(control_points), _degree(degree), _periodic(periodic) {
+                   bool periodic) : control_points(control_points), _degree(degree), _periodic(periodic) {
             // Initialize knots
             if (_periodic) {
                 generate_knots_periodic();
@@ -84,16 +84,16 @@ namespace cmmcore {
 
         NURBSCurve(const std::vector<vec4> &control_points, const int degree,
                    const std::vector<double> &knots, bool periodic)
-            : _control_points(control_points), _degree(degree), _knots(knots), _periodic(periodic) {
-            _update_interval();
+            : control_points(control_points), _degree(degree), knots(knots), _periodic(periodic) {
+            update_interval();
             rebuildAABB();
         }
 
         // Copy constructor and assignment operator
         NURBSCurve(const NURBSCurve &other) {
-            _control_points = other._control_points;
+            control_points = other.control_points;
             _degree = other._degree;
-            _knots = other._knots;
+            knots = other.knots;
             _aabb = other._aabb;
             _periodic = other._periodic;
             _interval = other._interval;
@@ -101,9 +101,9 @@ namespace cmmcore {
         };
 
         NURBSCurve &operator=(const NURBSCurve &other) {
-            _control_points = other._control_points;
+            control_points = other.control_points;
             _degree = other._degree;
-            _knots = other._knots;
+            knots = other.knots;
             _aabb = other._aabb;
             _periodic = other._periodic;
             _interval = other._interval;
@@ -117,7 +117,7 @@ namespace cmmcore {
         bool is_periodic() const {
             for (int j = 0; j < _degree; ++j) {
                 for (int i = 0; i < 4; ++i) {
-                    if (_control_points[j][i] != _control_points[_control_points.size() - _degree + j][i]) {
+                    if (control_points[j][i] != control_points[control_points.size() - _degree + j][i]) {
                         return false;
                     }
                 }
@@ -126,23 +126,23 @@ namespace cmmcore {
         }
 
         // Update interval based on knots
-        void _update_interval() {
-            _interval[0] = std::min_element(_knots.begin(), _knots.end())[0];
-            _interval[1] = std::max_element(_knots.begin(), _knots.end())[0];
+        void update_interval() {
+            _interval[0] = std::min_element(knots.begin(), knots.end())[0];
+            _interval[1] = std::max_element(knots.begin(), knots.end())[0];
         }
 
         // Hook function called after knots are updated
         void knots_update_hook() {
-            _update_interval();
+            update_interval();
         }
 
         // Normalize the knot vector
         void normalize_knots() {
-            double start = std::min_element(_knots.begin(), _knots.end())[0];
-            double end = std::max_element(_knots.begin(), _knots.end())[0];
+            double start = std::min_element(knots.begin(), knots.end())[0];
+            double end = std::max_element(knots.begin(), knots.end())[0];
             double d = 1.0 / (end - start);
 
-            for (auto &knot: _knots) {
+            for (auto &knot: knots) {
                 knot = (knot - start) * d;
             }
             knots_update_hook();
@@ -150,13 +150,13 @@ namespace cmmcore {
 
         // Generate default open knot vector
         void generate_knots() {
-            int n = static_cast<int>(_control_points.size());
-            _knots.clear();
-            _knots.resize(n + _degree + 1);
+            int n = static_cast<int>(control_points.size());
+            knots.clear();
+            knots.resize(n + _degree + 1);
 
-            std::fill(_knots.begin(), _knots.begin() + _degree + 1, 0.0);
-            std::iota(_knots.begin() + _degree + 1, _knots.end() - _degree, 1.0);
-            std::fill(_knots.end() - _degree, _knots.end(), static_cast<double>(n - _degree));
+            std::fill(knots.begin(), knots.begin() + _degree + 1, 0.0);
+            std::iota(knots.begin() + _degree + 1, knots.end() - _degree, 1.0);
+            std::fill(knots.end() - _degree, knots.end(), static_cast<double>(n - _degree));
 
             knots_update_hook();
         }
@@ -166,56 +166,56 @@ namespace cmmcore {
             if (is_periodic()) {
                 return;
             }
-            int n = static_cast<int>(_control_points.size());
+            int n = static_cast<int>(control_points.size());
             int new_n = n + _degree;
             std::vector<vec4> new_control_points(new_n);
 
             // Copy original control points
-            std::copy(_control_points.begin(), _control_points.end(), new_control_points.begin());
+            std::copy(control_points.begin(), control_points.end(), new_control_points.begin());
 
             // Add the first degree control points to the end
             for (int i = 0; i < _degree; ++i) {
-                new_control_points[n + i] = _control_points[i];
+                new_control_points[n + i] = control_points[i];
             }
-            _control_points = std::move(new_control_points);
+            control_points = std::move(new_control_points);
             generate_knots_periodic();
             _periodic = true;
         }
 
         // Generate knot vector for a periodic NURBS curve
         void generate_knots_periodic() {
-            int n = static_cast<int>(_control_points.size());
+            int n = static_cast<int>(control_points.size());
             int m = n + _degree + 1;
-            _knots.resize(m);
+            knots.resize(m);
             for (int i = 0; i < m; ++i) {
-                _knots[i] = static_cast<double>(i - _degree);
+                knots[i] = static_cast<double>(i - _degree);
             }
             knots_update_hook();
         }
 
         // Insert knots into the curve
         void insert_knot(double t, int count) {
-            int n = static_cast<int>(_control_points.size());
+            int n = static_cast<int>(control_points.size());
             int new_count = n + count;
-            const std::vector<vec4> cpts = _control_points;
+            const std::vector<vec4> cpts = control_points;
 
             // Find knot span
-            int span = find_span(n - 1, _degree, t, _knots, false);
+            int span = find_span(n - 1, _degree, t, knots, false);
 
 
             // Compute new knot vector
-            std::vector<double> k_v = knot_insertion_kv(_knots, t, span, count);
-            int s_u = find_multiplicity(t, _knots);
+            std::vector<double> k_v = knot_insertion_kv(knots, t, span, count);
+            int s_u = find_multiplicity(t, knots);
             // Compute new control points
-            _control_points.resize(new_count);
+            control_points.resize(new_count);
 
             for (int i = 0; i <= count; ++i) {
-                _control_points[i] = cpts.back() - i;
+                control_points[i] = cpts.back() - i;
             }
-            knot_insertion(_degree, _knots, cpts, t, count, s_u, span, _control_points);
+            knot_insertion(_degree, knots, cpts, t, count, s_u, span, control_points);
             // Update curve
-            _knots = std::move(k_v);
-            _update_interval();
+            knots = std::move(k_v);
+            update_interval();
         }
 
         // Split the curve at a given parameter value
@@ -224,28 +224,28 @@ namespace cmmcore {
                 std::fabs(param - _interval[0]) <= 1e-12 || std::fabs(param - _interval[1]) <= 1e-12) {
                 throw std::invalid_argument("Cannot split from the domain edge.");
             }
-            int n_ctrlpts = static_cast<int>(_control_points.size());
-            auto ks = find_span(n_ctrlpts, _degree, param, _knots, false) - _degree + 1;
-            int s = find_multiplicity(param, _knots);
+            int n_ctrlpts = static_cast<int>(control_points.size());
+            auto ks = find_span(n_ctrlpts, _degree, param, knots, false) - _degree + 1;
+            int s = find_multiplicity(param, knots);
             int r = _degree - s;
             // Insert knot
-            NURBSCurve temp_obj(this->_control_points, this->_degree, this->_knots, this->_periodic);
-            temp_obj._update_interval();
+            NURBSCurve temp_obj(this->control_points, this->_degree, this->knots, this->_periodic);
+            temp_obj.update_interval();
             temp_obj.insert_knot(param, r);
             // Knot span index
-            int knot_span = find_span(temp_obj._control_points.size(), _degree, param, temp_obj._knots, false) + 1;
+            int knot_span = find_span(temp_obj.control_points.size(), _degree, param, temp_obj.knots, false) + 1;
 
             // Create knot vectors for the two new curves
             std::vector<double> surf1_kv(knot_span);
             // printf("%d\n",knot_span);
-            std::vector<double> surf2_kv(temp_obj._knots.size() - knot_span);
+            std::vector<double> surf2_kv(temp_obj.knots.size() - knot_span);
             //surf1_kv.assign(temp_knots.begin(), temp_knots.begin()+ knot_span);
             //surf2_kv.assign(temp_knots.end()-knot_span, temp_knots.end());
             for (int i = 0; i < knot_span; ++i) {
-                surf1_kv[i] = temp_obj._knots[i];
+                surf1_kv[i] = temp_obj.knots[i];
             }
-            for (int i = 0; i < temp_obj._knots.size() - knot_span; ++i) {
-                surf2_kv[i] = temp_obj._knots[i + knot_span];
+            for (int i = 0; i < temp_obj.knots.size() - knot_span; ++i) {
+                surf2_kv[i] = temp_obj.knots[i + knot_span];
             }
             // Add param to the end of surf1_kv and beginning of surf2_kv
             surf1_kv.push_back(param);
@@ -254,10 +254,10 @@ namespace cmmcore {
                 surf2_kv.insert(surf2_kv.begin(), param);
             }
             // Control points for the new curves
-            std::vector<vec4> curve1_ctrlpts(temp_obj._control_points.begin(),
-                                             temp_obj._control_points.begin() + ks + r);
-            std::vector<vec4> curve2_ctrlpts(temp_obj._control_points.begin() + ks + r - 1,
-                                             temp_obj._control_points.end());
+            std::vector<vec4> curve1_ctrlpts(temp_obj.control_points.begin(),
+                                             temp_obj.control_points.begin() + ks + r);
+            std::vector<vec4> curve2_ctrlpts(temp_obj.control_points.begin() + ks + r - 1,
+                                             temp_obj.control_points.end());
             // Create new NURBS curves
             NURBSCurve curve1(curve1_ctrlpts, _degree, surf1_kv, false);
             NURBSCurve curve2(curve2_ctrlpts, _degree, surf2_kv, false);
@@ -270,18 +270,18 @@ namespace cmmcore {
 
         // Evaluate a point on the NURBS curve at parameter t
         void evaluate(const double t, vec3 &result) const {
-            int n = static_cast<int>(_control_points.size()) - 1;
+            int n = static_cast<int>(control_points.size()) - 1;
             result.set(0, 0, 0);
 
             // Assume curve_point is already implemented
-            curve_point(n, _degree, _knots, _control_points, t, result, _periodic);
+            curve_point(n, _degree, knots, control_points, t, result, _periodic);
         }
 
         void derivative(const double t, vec3 &result) const {
-            int n = static_cast<int>(_control_points.size()) - 1;
+            int n = static_cast<int>(control_points.size()) - 1;
             std::vector<vec4> CK(1);
 
-            curve_derivs_alg1(n, _degree, _knots, _control_points, t, 1,     CK, _periodic);
+            curve_derivs_alg1(n, _degree, knots, control_points, t, 1,     CK, _periodic);
                 auto der=CK[1];
 
             //printf("(%f,%f,%f,%f)\n",der.x,der.y,der.z,der.w);
@@ -293,11 +293,11 @@ namespace cmmcore {
 
 
         void derivative(const double t, std::vector<vec3> &result, const size_t d) const {
-            int n = static_cast<int>(_control_points.size()) - 1;
+            int n = static_cast<int>(control_points.size()) - 1;
             result.resize(d);
 
             std::vector<vec4> CK(result.size());
-            curve_derivs_alg1(n, _degree, _knots, _control_points, t, d,     CK, _periodic);
+            curve_derivs_alg1(n, _degree, knots, control_points, t, d,     CK, _periodic);
             for (int i = 0; i < d; ++i) {
                 auto &der=CK[i];
                 auto& target=result[i];
@@ -362,27 +362,27 @@ namespace cmmcore {
         }
 
         void get_derivative(NURBSCurve &derivative) const {
-            get_nurbs_derivative(_degree, _knots, _control_points, derivative._degree, derivative._knots,
-                                 derivative._control_points);
+            get_nurbs_derivative(_degree, knots, control_points, derivative._degree, derivative.knots,
+                                 derivative.control_points);
 
-            derivative._update_interval();
+            derivative.update_interval();
         }
 
         NURBSCurve get_derivative() const {
             NURBSCurve derivative{};
-            get_nurbs_derivative(_degree, _knots, _control_points, derivative._degree, derivative._knots,
-                                 derivative._control_points);
-            derivative._update_interval();
+            get_nurbs_derivative(_degree, knots, control_points, derivative._degree, derivative.knots,
+                                 derivative.control_points);
+            derivative.update_interval();
             return derivative;
         }
 
         std::vector<vec4> get_control_points() const {
-            return _control_points;
+            return control_points;
         }
 
         void set_control_points(std::vector<vec4> &cpts) {
-            bool change_size = (cpts.size() != _control_points.size());
-            _control_points = std::move(cpts);
+            bool change_size = (cpts.size() != control_points.size());
+            control_points = std::move(cpts);
             if (change_size) {
                 if (_periodic) {
                     generate_knots_periodic();
@@ -398,16 +398,16 @@ namespace cmmcore {
 
         void set_degree(int val) {
             _degree = val;
-            _update_interval();
+            update_interval();
         }
 
         const std::vector<double> get_knots() {
-            return _knots;
+            return knots;
         }
 
-        void set_knots(std::vector<double> &knots) {
-            _knots = std::move(knots);
-            _update_interval();
+        void set_knots(std::vector<double> &knts) {
+            knots = std::move(knts);
+            update_interval();
         }
 
         const std::array<double, 2> interval() {
@@ -421,18 +421,18 @@ namespace cmmcore {
         }
 
         // Member variables
-        std::vector<vec4> _control_points{}; // Each control point is (x, y, z, weight)
+        std::vector<vec4> control_points{}; // Each control point is (x, y, z, weight)
         int _degree = 0;
-        std::vector<double> _knots{};
+        std::vector<double> knots{};
         bool _periodic = false;
         std::vector<vec3> _hull{};
         std::array<double, 2> _interval{0., 1.}; // [min_knot, max_knot]
         AABB _aabb{};
         // Helper methods
         void rebuildAABB() {
-            _aabb.min.set(_control_points[0].to_vec3());
-            _aabb.max.set(_control_points[0].to_vec3());
-            for (auto p: _control_points) {
+            _aabb.min.set(control_points[0].to_vec3());
+            _aabb.max.set(control_points[0].to_vec3());
+            for (auto p: control_points) {
                 _aabb.expand(p.to_vec3());
             }
         }
@@ -461,7 +461,7 @@ namespace cmmcore {
             } else {
                 _knots_v = knots_v;
             }
-            _update_interval();
+            update_interval();
         }
 
         void generate_knots_u() {
@@ -470,7 +470,7 @@ namespace cmmcore {
             std::fill(_knots_u.begin(), _knots_u.begin() + _degree[0] + 1, 0.0);
             std::iota(_knots_u.begin() + _degree[0] + 1, _knots_u.end() - _degree[0], 1.0);
             std::fill(_knots_u.end() - _degree[0], _knots_u.end(), static_cast<double>(nu - _degree[0]));
-            _update_interval_u();
+            update_interval_u();
         }
 
         void generate_knots_v() {
@@ -479,7 +479,7 @@ namespace cmmcore {
             std::fill(_knots_v.begin(), _knots_v.begin() + _degree[1] + 1, 0.0);
             std::iota(_knots_v.begin() + _degree[1] + 1, _knots_v.end() - _degree[1], 1.0);
             std::fill(_knots_v.end() - _degree[1], _knots_v.end(), static_cast<double>(nv - _degree[1]));
-            _update_interval_v();
+            update_interval_v();
         }
 
         void evaluate(double u, double v, vec3 &result) const noexcept {
@@ -506,7 +506,7 @@ namespace cmmcore {
             _control_points = std::move(new_control_points);
             _knots_u = std::move(k_v);
             _size[0] = new_count_u;
-            _update_interval();
+            update_interval();
         }
 
         void insert_knot_v(double t, int count) {
@@ -526,7 +526,7 @@ namespace cmmcore {
             _control_points = std::move(new_control_points);
             _knots_v = std::move(k_v);
             _size[1] = new_count_v;
-            _update_interval();
+            update_interval();
         }
 
         std::pair<NURBSSurface, NURBSSurface> split_surface_u(double param, double tol = 1e-7) {
@@ -674,24 +674,24 @@ namespace cmmcore {
             {0., 0., 0.}, {0., 0., 0.}
         };
 
-        void _update_interval_u() {
+        void update_interval_u() {
             _interval[0][0] = *(_knots_u.begin());
             _interval[0][1] = *(_knots_u.end() - 1);
         }
 
-        void _update_interval_v() {
+        void update_interval_v() {
             _interval[1][0] = *(_knots_v.begin());
             _interval[1][1] = *(_knots_v.end() - 1);
         }
 
-        void _update_interval() {
+        void update_interval() {
             _interval[0][0] = *(_knots_u.begin());
             _interval[0][1] = *(_knots_u.end() - 1);
             _interval[1][0] = *(_knots_v.begin());
             _interval[1][1] = *(_knots_v.end() - 1);
         }
 
-        void getDerivativeSurface(int direction, NURBSSurface &result) const {
+        void get_derivative(int direction, NURBSSurface &result) const {
             if (direction != 0 && direction != 1) {
                 throw std::invalid_argument("Direction must be 0 (u) or 1 (v)");
             }
@@ -735,9 +735,9 @@ namespace cmmcore {
             result._knots_v = direction == 1 ? new_knots : _knots_v;
         }
 
-        NURBSSurface getDerivativeSurface(int direction) const {
+        NURBSSurface get_derivative(int direction) const {
             NURBSSurface result;
-            getDerivativeSurface(direction, result);
+            get_derivative(direction, result);
             return result;
         }
     };
@@ -759,7 +759,7 @@ namespace cmmcore {
                 a._control_points[k][j].cross(b._control_points[j][k], result._control_points[k][j]);
             }
         }
-        result._update_interval();
+        result.update_interval();
     }
 
     inline void cross(const NURBSSurface &a, const NURBSSurface &b, NURBSSurface &result) {
@@ -786,12 +786,12 @@ namespace cmmcore {
         }
     }
 
-    void decomposeDirection(NURBSSurface &surf, std::vector<NURBSSurface> &bezierSurfaces, int direction) {
+    inline void decomposeDirection(NURBSSurface &surf, std::vector<NURBSSurface> &bezierSurfaces, int direction) {
         //std::vector<double>::iterator knots_it =iterate_unique_knots(_knots_u,_degree[0]);
         assert(direction==0||direction==1);
         NURBSSurface temp = surf;
         std::vector<double> uknots;
-        temp._update_interval();
+        temp.update_interval();
         if (direction == 0) {
             uniqueKnots(temp._knots_u, uknots);
 

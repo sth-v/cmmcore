@@ -24,7 +24,7 @@ cdef extern from "nurbs.h" namespace "cmmcore" nogil:
         NURBSCurve &operator=(const NURBSCurve &other)
 
         bool is_periodic() const
-        void _update_interval()
+        void update_interval()
         void knots_update_hook()
         void normalize_knots()
         void generate_knots()
@@ -54,4 +54,4 @@ cdef extern from "nurbs.h" namespace "cmmcore" nogil:
         pair[NURBSSurface, NURBSSurface] split_surface_u(double param, double tol) const
         pair[NURBSSurface, NURBSSurface] split_surface_v(double param, double tol) const
 
-        void _update_interval() noexcept
+        void update_interval() noexcept

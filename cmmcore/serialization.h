@@ -118,8 +118,8 @@ namespace cmmcore {
         std::vector<uint8_t> buffer;
         serializeInt(buffer, curve.get_degree());
         serializeBool(buffer, curve.is_periodic());
-        serializeVectorVec4(buffer, curve.get_control_points());
-        serializeVectorDouble(buffer, curve.get_knots());
+        serializeVectorVec4(buffer, curve.control_points);
+        serializeVectorDouble(buffer, curve.knots);
         return buffer;
     }
 

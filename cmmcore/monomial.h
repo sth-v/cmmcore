@@ -17,7 +17,7 @@
 #endif
 
 namespace cmmcore {
-    enum SurfaceParameter {
+    enum class SurfaceParameter {
         U,
         V
     };
@@ -67,7 +67,7 @@ namespace cmmcore {
         int m = coeffs[0].size();
 
 
-        if (variable == U) {
+        if (variable == SurfaceParameter::U) {
             CMMCORE_RESIZE_TENSOR2D(result, n-1, m, vec3, 0, 0, 0);
             for (int i = 1; i < n; ++i) {
                 for (int j = 0; j < m; ++j) {
@@ -76,7 +76,7 @@ namespace cmmcore {
                     result[i - 1][j][2] = i * coeffs[i][j][2];
                 }
             }
-        } else if (variable == V) {
+        } else if (variable == SurfaceParameter::V) {
             CMMCORE_RESIZE_TENSOR2D(result, n, m-1, vec3, 0, 0, 0);
 
             for (int i = 0; i < n; ++i) {
@@ -199,7 +199,7 @@ namespace cmmcore {
             surf._size[1] = m;
             surf.generate_knots_u();
             surf.generate_knots_v();
-            surf._update_interval();
+            surf.update_interval();
         }
 
         void computePartialDerivative(const SurfaceParameter variable, Monomial2D &result) const {
@@ -210,8 +210,8 @@ namespace cmmcore {
 
         void computeNormal(Monomial2D &result) const {
             Tensor2D<vec3> coeffs_u, coeffs_v, coeffs;
-            compute_partial_derivative(this->coefficients, U, coeffs_u);
-            compute_partial_derivative(this->coefficients, V, coeffs_v);
+            compute_partial_derivative(this->coefficients, SurfaceParameter::U, coeffs_u);
+            compute_partial_derivative(this->coefficients, SurfaceParameter::V, coeffs_v);
             cross(coeffs_u, coeffs_v, coeffs);
             result.set(coeffs);
         }
