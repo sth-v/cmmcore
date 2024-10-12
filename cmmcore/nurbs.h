@@ -15,16 +15,15 @@
 
 #ifdef CYTHON_ABI
 #include "nurbs_utils.h"
-#include "bvh.hpp"
+#include "aabb.h"
 #else
 #include "cmmcore/nurbs_utils.h"
-#include "cmmcore/bvh.hpp"
+#include "cmmcore/aabb.h"
 
 #endif
 
 
 namespace cmmcore {
-#define CMMCORE_ITERATE_UNIQUE_KNOTS(it, knots, degree) auto it=knots.begin()+degree+1; it!= knots.end()-degree-1; ++it
 
 
     class NURBSCurve {
