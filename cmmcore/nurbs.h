@@ -284,7 +284,8 @@ namespace cmmcore {
 
             curve_derivs_alg1(n, _degree, _knots, _control_points, t, 1,     CK, _periodic);
                 auto der=CK[1];
-            printf("(%f,%f,%f,%f)\n",der.x,der.y,der.z,der.w);
+
+            //printf("(%f,%f,%f,%f)\n",der.x,der.y,der.z,der.w);
             result.x= der.x;
             result.y= der.y;
             result.z= der.z;
