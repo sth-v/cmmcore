@@ -54,7 +54,7 @@ namespace cmmcore{
 
 
 
-inline bool isvec2Inside2d(const polygon2& polygon, const vec2& p) {
+inline bool pointInPolygon2D(const polygon2& polygon, const vec2& p) {
     int n = polygon.size();
     bool inside = false;
     for (int i = 0, j = n - 1; i < n; j = i++) {
@@ -110,9 +110,9 @@ inline PolygonRelationship2D polygonRelationship2D(const polygon2& poly1, const 
 
     // Check if one polygon is inside the other
     bool poly1InsidePoly2 = std::all_of(poly1.begin(), poly1.end(),
-        [&poly2](const vec2& p) { return isvec2Inside2d(poly2, p); });
+        [&poly2](const vec2& p) { return pointInPolygon2D(poly2, p); });
     bool poly2InsidePoly1 = std::all_of(poly2.begin(), poly2.end(),
-        [&poly1](const vec2& p) { return isvec2Inside2d(poly1, p); });
+        [&poly1](const vec2& p) { return pointInPolygon2D(poly1, p); });
 
     if (poly1InsidePoly2 || poly2InsidePoly1) {
         return PolygonRelationship2D::INTERSECT;
