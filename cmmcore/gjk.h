@@ -21,189 +21,239 @@ SOFTWARE.
 */
 
 
-#ifndef GJK_H
-#define GJK_H
+#ifndef CMMCORE_GJK_H
+#define CMMCORE_GJK_H
+
+
+
 #ifdef CYTHON_ABI
 #include "vec.h"
+#include "closest_point.h"
 #else
 #include "cmmcore/vec.h"
+#include "cmmcore/closest_point.h"
+
 #endif
 #include <vector>
 #include <limits>
 #include <cmath>
 #include <algorithm>
-#include <csignal>
-#include <regex>
-
+#include <stdexcept>
+#include <array>
+#include <map>
 
 namespace cmmcore{
-inline int support_vector(const std::vector<vec3> &vertices, const vec3 &d) {
-  double highest = -std::numeric_limits<double>::max();
-  int supportIndex = -1;
+static const size_t CMMCORE_SIMPLEX_FACES[4][3]= {{1,2,3},{0,3,2},{0,1,3},{0,2,1}};
 
-  for (size_t i = 0; i < vertices.size(); ++i) {
-    double dotValue = vertices[i].dot( d);
-    if (dotValue > highest) {
-      highest = dotValue;
-      supportIndex = static_cast<int>(i);
-    }
-  }
-
-  return supportIndex;
-}
-
-inline bool handle_simplex2(std::vector<vec3>& simplex, vec3& d, double tol) {
+inline bool handleSimplex(std::vector<vec3>& simplex, vec3& direction, double tol) {
     switch (simplex.size()) {
-        case 1: {
-            // Point simplex
-            vec3 ao = -simplex[0];
-            if (ao.length() < tol) {
-                // Origin is at the point
-                return true;
-            }
-            d = ao;
-            break;
-        }
         case 2: {
-            const auto& a = simplex[1];
-            const auto& b = simplex[0];
+            // Line segment case
+            const vec3& a = simplex[1];
+            const vec3& b = simplex[0];
             vec3 ab = b - a;
             vec3 ao = -a;
 
             if (ab.dot(ao) > tol) {
-                vec3 temp = ab.cross(ao).cross(ab);
-                if (temp.length() < tol) {
-                    // Origin is on the line segment
-                    return true;
-                }
-                d = temp;
+                // Direction is perpendicular to ab towards the origin
+                direction = ab.cross(ao).cross(ab);
             } else {
+                // Remove point not contributing to the simplex
                 simplex.erase(simplex.begin());
-                d = ao;
+                direction = ao;
             }
             break;
         }
         case 3: {
-            const auto& a = simplex[2];
-            const auto& b = simplex[1];
-            const auto& c = simplex[0];
+            // Triangle case
+            const vec3& a = simplex[2];
+            const vec3& b = simplex[1];
+            const vec3& c = simplex[0];
             vec3 ab = b - a;
             vec3 ac = c - a;
             vec3 ao = -a;
-            vec3 abc = ab.cross( ac);
+            vec3 abc = ab.cross(ac);
 
-            vec3 ab_abc = abc.cross(ab);
-            vec3 abc_ac = ac.cross(abc);
+            vec3 abPerp = abc.cross(ac);
+            vec3 acPerp = ab.cross(abc);
 
-            if (ab_abc.dot(ao) > tol) {
+            if (abPerp.dot(ao) > tol) {
+                // Region outside AB
                 simplex.erase(simplex.begin());
-                d = ab_abc;
-            } else if (abc_ac.dot(ao) > tol) {
-                    simplex.erase(simplex.begin() + 1);
-                d = abc_ac;
+                direction = abPerp;
+            } else if (acPerp.dot(ao) > tol) {
+                // Region outside AC
+                simplex.erase(simplex.begin() + 1);
+                direction = acPerp;
+            } else {
+                if (abc.dot(ao) > tol) {
+                    // Origin is below the triangle
+                    direction = abc;
                 } else {
-                if (std::abs(abc.dot(ao)) < tol) {
-                    // Origin is on the triangle
-                    return true;
-                }
-                    if (abc.dot( ao) > tol) {
-                        d = abc;
-                    } else {
-                        std::swap(simplex[0], simplex[1]);
-                    d = -abc;
+                    // Origin is above the triangle
+                    std::swap(simplex[0], simplex[1]);
+                    direction = -abc;
                 }
             }
             break;
         }
         case 4: {
-          const auto &a = simplex[3];
-          const auto &b = simplex[2];
-          const auto &c = simplex[1];
-          const auto &dPoint = simplex[0];
+            // Tetrahedron case
+            const vec3& a = simplex[3];
+            const vec3& b = simplex[2];
+            const vec3& c = simplex[1];
+            const vec3& d = simplex[0];
 
-          vec3 ab = b - a;
-          vec3 ac = c - a;
-          vec3 ad = dPoint - a;
-          vec3 ao = {-a[0], -a[1], -a[2]};
+            vec3 ab = b - a;
+            vec3 ac = c - a;
+            vec3 ad = d - a;
+            vec3 ao = -a;
 
-          vec3 abc = ab.cross( ac);
-          vec3 acd = ac.cross( ad);
-          vec3 adb = ad.cross( ab);
+            vec3 abc = ab.cross(ac);
+            vec3 acd = ac.cross(ad);
+            vec3 adb = ad.cross(ab);
 
-          if (abc.dot( ao) > 0) {
-            simplex.erase(simplex.begin());
-            return handle_simplex2(simplex, d, tol);
-          } if (acd.dot( ao) > 0) {
-            simplex.erase(simplex.begin() + 1);
-            return handle_simplex2(simplex, d, tol);
-          }  if (acd.dot( ao) > 0) {
-            simplex.erase(simplex.begin() + 2);
-            return handle_simplex2(simplex, d, tol);
-          } 
-            return true;
-
+            if (abc.dot(ao) > 0) {
+                // Remove point D
+                simplex.erase(simplex.begin());
+                direction = abc;
+            } else if (acd.dot(ao) > 0) {
+                // Remove point B
+                simplex.erase(simplex.begin() + 2);
+                direction = acd;
+            } else if (adb.dot(ao) > 0) {
+                // Remove point C
+                simplex.erase(simplex.begin() + 1);
+                direction = adb;
+            } else {
+                // Origin is inside the tetrahedron
+                return true;
+            }
+            break;
         }
         default:
-            throw std::invalid_argument("Invalid simplex size "+simplex.size());
-        }
+            throw std::invalid_argument("Invalid simplex size " + std::to_string(simplex.size()));
+    }
+    return false;
+}
+
+// Overload operators for vec3 to use in maps and comparisons
+inline bool operator<(const vec3& lhs, const vec3& rhs) {
+    if (lhs[0] < rhs[0]) return true;
+    if (lhs[0] == rhs[0] && lhs[1] < rhs[1]) return true;
+    if (lhs[0] == rhs[0] && lhs[1] == rhs[1] && lhs[2] < rhs[2]) return true;
     return false;
 }
 
 
-inline bool gjk_collision_detection( const std::vector<vec3>& vertices1, const std::vector<vec3>& vertices2, const double tol, size_t maxIter = 0) {
-    if (vertices1.empty() || vertices2.empty()) {
-        // Handle empty sets
-        return false;
-    }
 
-    if (maxIter == 0) {
+// Function to compute the closest point to the origin on the current simplex
+inline vec3 closestPointOnSimplex(const std::vector<vec3>& simplex) {
+#ifdef CMMCORE_DEBUG
+    printf("GJK: closest point at  %d-simplex\n", simplex.size());
+#endif
+    if (simplex.size() == 1) {
+        // Only one point in the simplex
+        return simplex[0];
+    } else if (simplex.size() == 2) {
+        // Line segment case
+        return closestPointOnLine(simplex[1], simplex[0]);
+    } else if (simplex.size() == 3) {
+        // Triangle case
+        return closestPointOnTriangle(simplex[2], simplex[1], simplex[0]);
+    } else {
 
-        maxIter = std::min<size_t>(vertices1.size() * vertices2.size(), 1000);
-    }
+        // Tetrahedron case (should not happen in non-colliding case)
+        vec3 cpt;
+        double mindist=std::numeric_limits<double>::max();
+        for (size_t i = 0; i < simplex.size(); ++i) {
 
-        const size_t rows = vertices1.size();
-        const size_t cols = vertices2.size();
-        std::vector<bool> visited(rows * cols, false);
-        std::vector<vec3> cache(rows * cols);
-
-        std::vector<vec3> simplex;
-        simplex.reserve(4);  // Pre-allocate space for efficiency
-
-        auto support = [&](const vec3& d) -> vec3 {
-            int i = support_vector(vertices1, d);
-            int j = support_vector(vertices2, {-d[0], -d[1], -d[2]});
-            return vertices1[i] - vertices2[j];
-        };
-
-        vec3 d = {1, 0, 0};
-        auto newPoint = support(d);
-        size_t index = static_cast<size_t>(support_vector(vertices1, d)) * cols + static_cast<size_t>(support_vector(vertices2, {-d[0], -d[1], -d[2]}));
-        visited[index] = true;
-        cache[index] = newPoint;
-        simplex.push_back(newPoint);
-        d = {-newPoint[0], -newPoint[1], -newPoint[2]};
-
-        for (size_t iter = 0; iter < maxIter; ++iter) {
-            newPoint = support(d);
-
-
-            if (newPoint.dot( d) < 0) {
-                printf("newPoint.dot( d) {%f} < 0\n", newPoint.dot( d) );
-                return false;
+            auto pt=closestPointOnTriangle(simplex[CMMCORE_SIMPLEX_FACES[i][0]], simplex[ CMMCORE_SIMPLEX_FACES[i][1]], simplex[CMMCORE_SIMPLEX_FACES[i][2]]);
+            double dst=pt.sqLength();
+            if (dst<mindist) {
+              cpt=pt;
             }
-
-            simplex.push_back(newPoint);
-
-            if (handle_simplex2(simplex, d, tol)) {
-                return true;
-            }
+            
         }
-    printf("WARNING!!!! GJK failed to converge after %zu iterations\n", maxIter);
-
-        return false;
+        return cpt;
     }
-
 }
 
+    inline vec3 closestPoint(const std::vector<vec3>& simplex){
+      return closestPointOnSimplex(simplex);
+    }
 
-#endif //GJK_H
+inline int supportVector(const std::vector<vec3> &vertices, const vec3 &d) {
+    double highest = -std::numeric_limits<double>::max();
+    int supportIndex = -1;
+
+    for (size_t i = 0; i < vertices.size(); ++i) {
+      double dotValue = vertices[i].dot(d);
+      if (dotValue > highest) {
+        highest = dotValue;
+        supportIndex = static_cast<int>(i);
+      }
+    }
+    return supportIndex;
+
+}
+// Support function for Minkowski Difference
+inline vec3 support(const std::vector<vec3>& verticesA, const std::vector<vec3>& verticesB, const vec3& d) {
+    int indexA = supportVector(verticesA, d);
+    int indexB = supportVector(verticesB, -d);
+    return verticesA[indexA] - verticesB[indexB];
+}
+
+inline bool GJK(const std::vector<vec3>& verticesA,
+    const std::vector<vec3>& verticesB,
+    std::vector<vec3>& simplex,
+    vec3& closestPointToOrigin,
+    const double tolerance = std::numeric_limits<double>::epsilon(),
+    const int maxIterations = 100) {
+    vec3 direction = verticesB[0] - verticesA[0]; // Initial direction
+    if (direction.sqLength() == 0) {
+        direction = vec3(1, 0, 0); // Arbitrary direction
+    }
+
+    // Initial support point
+    vec3 point = support(verticesA, verticesB, direction);
+    simplex.push_back(point);
+
+    // New direction towards the origin
+    direction = -point;
+
+
+    int iterations = 0;
+
+
+    while (iterations++ < maxIterations) {
+        point = support(verticesA, verticesB, direction);
+        if (point.dot(direction) < 0) {
+            // No collision
+            // Compute the closest point to the origin on the simplex
+            closestPointToOrigin = closestPointOnSimplex(simplex);
+            #ifdef CMMCORE_DEBUG
+            printf("GJK iterations: %d\n", iterations);
+            #endif
+            return false;
+        }
+
+        simplex.push_back(point);
+
+        if (handleSimplex(simplex, direction, tolerance)) {
+            // Collision detected
+            #ifdef CMMCORE_DEBUG
+            printf("GJK iterations: %d\n", iterations);
+            #endif
+            return true;
+        }
+    }
+    closestPointToOrigin = closestPointOnSimplex(simplex);
+    // Should not reach here
+#ifdef CMMCORE_DEBUG
+    printf("GJK iterations: %d\n", iterations);
+#endif
+    throw std::runtime_error("GJK did not converge");
+}
+}
+#endif //CMMCORE_GJK_H

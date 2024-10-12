@@ -4,6 +4,7 @@
 #include <cmath>
 #include <random>
 #include <limits>
+#define CMMCORE_DEBUG
 #include <cmmcore/separability.h>
 
 #include "cmmcore/utils.h"
@@ -18,16 +19,11 @@ using namespace cmmcore;
 //
 // Task 1: Separating Planes
 // Task 1: Separating Planes
-void taskSeparatingPlanes(const std::vector<vec3>& set1, const std::vector<vec3>& set2) {
+inline bool taskSeparatingPlanes(const std::vector<vec3>& set1, const std::vector<vec3>& set2) {
 
-
-
-    auto res=SAT3D(set1, set2);
-    if (res) {
-        printf("Separable\n");
-    } else {
-        printf("Not Separable\n");
-    }
+    const bool res=SAT3D(set1, set2);
+    res?printf("Separable\n"):printf("Not Separable\n");
+    return res;
 }
 
 // Task 2: Separating Circles
@@ -117,11 +113,31 @@ int main() {
        {1.0795070264287348, 1.6288654940411893, 3.8049783774482737}, {1.1482020254981824, 1.3706028659447047, 3.6059545063668579}, {1.2168970245676298, 1.1123402378482206, 3.4069306352854407}, {1.2855920236370775, 0.85407760975173641, 3.2079067642040249}, {1.3542870227065253, 0.59581498165525226, 3.0088828931226095}, {1.2498362404116015, 1.8099498112368924, 3.2540694011115479}, {1.3942106686189153, 1.5786573755575954, 3.2575107874946236}, {1.5385850968262293, 1.3473649398782988, 3.2609521738777003}, {1.6829595250335434, 1.1160725041990021, 3.2643935602607765}, {1.8273339532408577, 0.88478006851970536, 3.2678349466438532}, {1.4201654543944680, 1.9910341284325950, 2.7031604247748215}, {1.6402193117396482, 1.7867118851704857, 2.9090670686223903}, {1.8602731690848284, 1.5823896419083765, 3.1149737124699586}, {2.0803270264300089, 1.3780673986462673, 3.3208803563175273}, {2.3003808837751896, 1.1737451553841582, 3.5267870001650965}, {1.5904946683773347, 2.1721184456282980, 2.1522514484380952}, {1.8862279548603815, 1.9947663947833765, 2.5606233497501565}, {2.1819612413434282, 1.8174143439384545, 2.9689952510622173}, {2.4776945278264750, 1.6400622930935329, 3.3773671523742790}, {2.7734278143095219, 1.4627102422486116, 3.7857390536863402}}
 ;
     // Run Task 1
-    taskSeparatingPlanes(set1, set2);
-    taskSeparatingPlanes(set1, set3);
-    taskSeparatingPlanes(set11, set2);
-    taskSeparatingPlanes(set11, set3);
+    bool correctResults[4]={false, true,true,false};
+    bool res1=taskSeparatingPlanes(set1, set2);
+    bool res2=taskSeparatingPlanes(set1, set3);
+    bool res3=taskSeparatingPlanes(set11, set2);
+    bool res4=taskSeparatingPlanes(set11, set3);
+
+    for (auto& val: set11) {
+        val*=1000.;
+    }
+    for (auto& val: set3) {
+        val*=1000.;
+    }
+    for (auto& val: set2) {
+        val*=1000.;
+    }
+
     // Example vectors for Task 2
+    bool res5=taskSeparatingPlanes(set11, set2);
+    bool res6=taskSeparatingPlanes(set11, set3);
+    assert(correctResults[0]==res1);
+    assert(correctResults[1]==res2);
+    assert(correctResults[2]==res3);
+    assert(correctResults[3]==res4);
+    assert(res3==res5);
+    assert(res4==res6);
 
 
     return 0;

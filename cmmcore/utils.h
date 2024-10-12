@@ -23,6 +23,7 @@ SOFTWARE.
 #ifndef UTILS_H
 #define UTILS_H
 #include <cmath>
+#include <chrono>
 #include <random>
 #include <limits>
 #include "cmmcore/vec.h"
@@ -57,5 +58,38 @@ inline double calc_epsilon(const double x) noexcept {
         vecs[i] = random_vec3(min, max);
     }
 }
+    class Timer {
+    std::chrono::high_resolution_clock::time_point _start  ;
+    std::chrono::high_resolution_clock::time_point  _end;
+        public:
+        int print_format=0;
+
+        long long duration;
+        Timer(int fmt=0) :_start(std::chrono::high_resolution_clock::now()),
+        _end(_start),print_format(fmt),
+        duration(0) {};
+        void start() {
+            this->_start=std::chrono::high_resolution_clock::now();
+
+        }
+        void stop() {
+            this->_end=std::chrono::high_resolution_clock::now();
+            this->duration=std::chrono::duration_cast<std::chrono::nanoseconds>(_end-_start).count();
+
+        }
+        void print(const std::string& text="") {
+            if (print_format==0) {
+                std::cout <<text<< duration << " ns." <<std::endl;
+            }
+            if (print_format==1) {
+
+                    std::cout <<text<< duration*1e-6 << " ms." <<std::endl;
+            }    if (print_format==2) {
+                std::cout <<text<< duration*1e-9 << " secs." <<std::endl;
+
+            }
+        }
+
+    };
 }
 #endif //UTILS_H

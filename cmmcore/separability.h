@@ -9,9 +9,12 @@
 #include "cmmcore/polygon.h"
 #include "cmmcore/convexhull.h"
 #include <algorithm>
-#include "cmmcore/gjk2.h"
+#include "cmmcore/gjk.h"
 #include "cmmcore/numeric_utils.h"
 #include "cmmcore/plane.h"
+#ifdef CMMCORE_DEBUG
+#include "cmmcore/utils.h"
+#endif
 namespace cmmcore {
   // SIMD-optimized AABB (Axis-Aligned Bounding Box)
   /**
@@ -191,13 +194,38 @@ namespace cmmcore {
 
   };
   */
-  inline bool SAT3D(const std::vector<vec3>& pts1,const std::vector<vec3>& pts2, const double eps=1e-6) {
+  inline bool SAT3D(const std::vector<vec3>& pts1,const std::vector<vec3>& pts2, const double eps=std::numeric_limits<double>::epsilon()) {
     std::vector<vec3> hull1,hull2;
+#ifdef CMMCORE_DEBUG
+    auto t=Timer(1);
+    t.start();
+#endif
+
     convex_hull3d(pts1,hull1);
+#ifdef CMMCORE_DEBUG
+    t.stop();
+    t.print("convex_hull3d at: ");
+    t.start();
+#endif
+
+
     convex_hull3d(pts2,hull2);
+#ifdef CMMCORE_DEBUG
+    t.stop();
+    t.print("convex_hull3d at: ");
+#endif
+
     std::vector<vec3>  simplex;
     vec3 closestPointToOrigin;
+#ifdef CMMCORE_DEBUG
+    t.start();
+#endif
+
     GJK(hull1,hull2, simplex,closestPointToOrigin,eps);
+#ifdef CMMCORE_DEBUG
+    t.stop();
+    t.print("GJK at: ");
+#endif
 
 
     return closestPointToOrigin.length()>0;

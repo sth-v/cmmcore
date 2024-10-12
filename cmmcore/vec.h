@@ -193,6 +193,11 @@ namespace cmmcore {
     bool collinear(const vec2& other) const {
       return CMMCORE_VEC_COLLINEAR(*this,other);
     }
+    void operator*=(const double val) {
+      x*=val;
+      y*=val;
+
+    }
   };
 
 
@@ -246,6 +251,11 @@ struct vec3 {
     y=values.y;
     z=values.z;
 
+  }
+  void operator*=(const double val) {
+    x*=val;
+    y*=val;
+    z*=val;
   }
   bool operator==(const vec3& other) const {
 
