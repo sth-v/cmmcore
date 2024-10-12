@@ -257,6 +257,11 @@ struct vec3 {
     y*=val;
     z*=val;
   }
+  void operator/=(const double val) {
+    x/=val;
+    y/=val;
+    z/=val;
+  }
   bool operator==(const vec3& other) const {
 
     return std::abs(x - other.x) < std::numeric_limits<double>::epsilon() &&
@@ -307,6 +312,7 @@ struct vec3 {
     y+=b.y;
     z+=b.z;
   }
+
   double dot( const vec3& b) const {
 #ifdef __ARM_NEON
     float64x2_t va =  vld1q_f64(&x);float64x2_t vb =  vld1q_f64(&b.x);
@@ -655,7 +661,7 @@ struct vec4 {
    * @param value The value to initialize x, y, and z.
    */
 
-  vec4(double value) : x(value), y(value), z(value), w(1) {}
+  vec4(double value) : x(value), y(value), z(value), w(value) {}
 
   /**
    * @brief Initializes the vector with individual x, y, z components.
@@ -724,7 +730,7 @@ struct vec4 {
  * @return The value of the specified component.
  * @throws std::runtime_error if the index is out of bounds (i < 0 or i > 2).
  */
-  double operator[](const size_t i)const{
+  double operator[](const size_t i) const{
     switch (i) {
       case 0:
         return x;

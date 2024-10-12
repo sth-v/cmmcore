@@ -1018,6 +1018,108 @@ namespace cmmcore {
 
         return {new_ctrlpts, new_kv};
     }
+/**
+ * @brief Computes the first derivative of a NURBS curve.
+ *
+ * This function calculates the first derivative of a NURBS (Non-Uniform Rational B-Splines) curve. The resulting derivative is also a NURBS curve but has reduced degree, fewer control points, and an updated knot vector.
+ *
+ * ### Derivation Details:
+ * 1. **Degree Reduction**: The derivative curve has a degree of `p-1`, where `p` is the degree of the original NURBS curve.
+ * 2. **Control Points Update**: The control points of the derivative curve are calculated using the formula:
+ *
+ *    \f[
+ *    Q_i = p \cdot \frac{w_{i+1}P_{i+1} - w_iP_i}{(u_{i+p+1} - u_{i+1})(w_i + w_{i+1})}
+ *    \f]
+ *
+ *    where \( w_i \) are the weights, \( P_i \) are the control points, and \( u_i \) are the knot values of the original curve.
+ * 3. **Knot Vector Update**: The derivative's knot vector is obtained by removing the first and last knots from the original knot vector.
+ * 4. **Weights Calculation**: The weights \( v_i \) of the derivative curve are calculated as:
+ *
+ *    \f[
+ *    v_i = \frac{w_i \cdot w_{i+1}}{w_i + w_{i+1}}
+ *    \f]
+ *
+ * ### Parameters:
+ * @param degree (int)
+ *     The degree `p` of the original NURBS curve.
+ *
+ * @param knots (const std::vector<double>&)
+ *     The knot vector `u` of the original NURBS curve.
+ *
+ * @param ctrlpts (const std::vector<vec4>&)
+ *     The control points `P_i` of the original NURBS curve. Each control point is a 4D vector (x, y, z, w), where `w` represents the weight.
+ *
+ * @param[out] der_degree (int&)
+ *     The degree of the derivative curve, which will be `degree - 1`.
+ *
+ * @param[out] der_knots (std::vector<double>&)
+ *     The knot vector of the derivative curve. It will have `knots.size() - 2` elements.
+ *
+ * @param[out] der_ctrlpts (std::vector<vec4>&)
+ *     The control points of the derivative curve. It will contain `ctrlpts.size() - 1` points.
+ *
+ * ### Algorithm:
+ * 1. Compute the derivative curve's degree as `degree - 1`.
+ * 2. Resize the knot vector by removing the first and last knot of the original.
+ * 3. Calculate the control points of the derivative curve using the provided formula.
+ *    - Iterate over the original control points, compute the new control point coordinates and weight for each.
+ *    - Use a weighted difference of neighboring control points, adjusted by the knot vector and degree.
+ *
+ * ### Usage Example:
+ * ```cpp
+ * int degree = 3;
+ * std::vector<double> knots = {0.0, 0.0, 0.0, 0.5, 1.0, 1.0, 1.0};
+ * std::vector<vec4> controlPoints = {
+ *     {0.0, 0.0, 0.0, 1.0},
+ *     {1.0, 1.0, 0.0, 1.0},
+ *     {2.0, 0.0, 0.0, 1.0}
+ * };
+ * int der_degree;
+ * std::vector<double> der_knots;
+ * std::vector<vec4> der_ctrlpts;
+ *
+ * get_nurbs_derivative(degree, knots, controlPoints, der_degree, der_knots, der_ctrlpts);
+ * ```
+ *
+ * This would compute the first derivative of the input NURBS curve.
+ */
+inline void get_nurbs_derivative(const int degree,
+                                 const std::vector<double> &knots,
+                                 const std::vector<vec4> &ctrlpts,
+                                 int& der_degree,
+                                 std::vector<double> &der_knots,
+                                 std::vector<vec4> &der_ctrlpts) {
+    // Set the degree of the derivative curve
+    der_degree = degree - 1;
+
+    // Resize the control points and knot vector for the derivative
+    der_ctrlpts.resize(ctrlpts.size() - 1);
+    der_knots.resize(knots.size() - 2);
+
+    // Copy the knot vector for the derivative, omitting the first and last knots
+    memcpy(der_knots.data(), knots.data() + 1, sizeof(double) * (knots.size() - 2));
+
+    // Compute the new control points for the derivative curve
+    for (size_t i = 0; i < ctrlpts.size() - 1; ++i) {
+        const auto& p1 = ctrlpts[i];
+        const auto& p2 = ctrlpts[i + 1];
+        auto& p_new = der_ctrlpts[i];
+
+        // Compute the denominator for the control point formula
+        const double denominator = (knots[i + degree + 1] - knots[i + 1]) * (p1.w + p2.w);
+        // Calculate the weight of the new control point
+        const double w = (p1.w * p2.w) / (p1.w + p2.w);
+
+        // Calculate the new control point's x, y, z coordinates
+        p_new.x = (p2.x * p2.w - p1.x * p1.w) / denominator * degree / w;
+        p_new.y = (p2.y * p2.w - p1.y * p1.w) / denominator * degree / w;
+        p_new.z = (p2.z * p2.w - p1.z * p1.w) / denominator * degree / w;
+
+        // Set the weight of the new control point
+        p_new.w = 1.0;
+    }
+}
+
 }
 
 #endif //NURBS_UTILS_H
