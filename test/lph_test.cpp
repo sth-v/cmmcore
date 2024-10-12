@@ -8,7 +8,7 @@
 #include <cmmcore/separability.h>
 
 #include "cmmcore/utils.h"
-#include "cmmcore/lp.h"
+
 
 using namespace cmmcore;
 // Define a type for vectors
@@ -27,55 +27,6 @@ inline bool taskSeparatingPlanes(const std::vector<vec3>& set1, const std::vecto
 }
 
 // Task 2: Separating Circles
-void taskSeparatingCircles(const std::vector<lp::Vector>& set1, const std::vector<lp::Vector>& set2) {
-    int dimension = 3; // Variables are (P_x, P_y, ε)
-
-    std::vector<lp::Constraint> constraints;
-
-    // Initial constraint ε >= 0
-    lp::Constraint initial_constraint;
-    initial_constraint.a = {0, 0, 1}; // Coefficient for ε >= 0
-    constraints.push_back(initial_constraint);
-
-    // Constraints from set1: P · v_i + ε >= 0
-    for (const auto& v : set1) {
-        lp::Constraint c;
-        c.a = {v[0], v[1], 1}; // Coefficients (v_i_x, v_i_y, 1)
-        constraints.push_back(c);
-    }
-
-    // Constraints from set2: P · w_j - ε <= 0
-    for (const auto& w : set2) {
-        lp::Constraint c;
-        c.a = {-w[0], -w[1], -1}; // Negate coefficients and include ε
-        constraints.push_back(c);
-    }
-
-    // Objective function: Minimize ε / sqrt(P · P + ε^2)
-    // Set n = (0, 0, 1), d = (0, 0, 0)
-    lp::Vector n = {0, 0, 1};
-    lp::Vector d_vec = {0, 0, 0};
-
-    // Add the constraint ε <= 0
-    lp::Constraint epsilon_constraint;
-    epsilon_constraint.a = {0, 0, 1}; // ε <= 0
-    constraints.push_back(epsilon_constraint);
-
-    // Initialize LP solver
-    lp::LPSolver solver;
-
-    // Solve LP problem
-    lp::Vector solution = solver.solve(dimension, constraints, n, d_vec);
-
-    // Normalize the vector P
-    double norm = std::sqrt(solution[0]*solution[0] + solution[1]*solution[1]);
-    if (norm == 0) norm = 1e-8; // Avoid division by zero
-
-    // Output separating vector P
-    std::cout << "Separating vector P:" << std::endl;
-    std::cout << "P_x = " << solution[0] / norm << ", P_y = " << solution[1] / norm
-              << ", ε = " << solution[2] << std::endl;
-}
 
 int main() {
     // Example points for Task 1
