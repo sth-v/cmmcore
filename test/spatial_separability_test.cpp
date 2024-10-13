@@ -18,7 +18,6 @@ using namespace cmmcore;
 //;    // Run Task 1
 //
 // Task 1: Separating Planes
-// Task 1: Separating Planes
 inline bool taskSeparatingPlanes(const std::vector<vec3>& set1, const std::vector<vec3>& set2) {
 
     const bool res=SAT3D(set1, set2);
@@ -26,7 +25,6 @@ inline bool taskSeparatingPlanes(const std::vector<vec3>& set1, const std::vecto
     return res;
 }
 
-// Task 2: Separating Circles
 
 int main() {
     // Example points for Task 1

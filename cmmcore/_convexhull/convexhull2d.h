@@ -2,8 +2,8 @@
 // Created by Andrew Astakhov on 08.10.24.
 //
 
-#ifndef __CONVEXHULL2D_H
-#define __CONVEXHULL2D_H
+#ifndef CMMCORE_CONVEXHULL2D_H
+#define CMMCORE_CONVEXHULL2D_H
 #include <iostream>
 #include <vector>
 #include <algorithm>
@@ -117,4 +117,4 @@ inline std::vector<vec2> convex_hull2d(std::vector<vec2>& points) {
 
 
 }
-#endif //__CONVEXHULL2D_H
+#endif //CMMCORE_CONVEXHULL2D_H

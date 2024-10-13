@@ -58,6 +58,25 @@ inline double segmentsDistance(const vec3& p1,const vec3& p2,const vec3& q1,cons
     return (cpt2-cpt1).length();
 }
 
+    inline void centerProjectionToXY(const vec3& origin, const vec3& point, vec2& projected) {
+    if (origin[2] == point[2]) {
+        // If the z-coordinates are the same, no projection is needed
+        projected.set(point.x,point.y);
 
+        return;
+
+    }
+
+    // Calculate the scaling factor
+    const double t = -origin[2] / (point[2] - origin[2]);
+
+    // Calculate the projected point
+
+    projected[0] = origin[0] + t * (point[0] - origin[0]);
+    projected[1] = origin[1] + t * (point[1] - origin[1]);
+
+
+
+}
 }
 #endif //CMMCORE_NUMERIC_UTILS_H

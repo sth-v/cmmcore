@@ -204,12 +204,18 @@ inline vec3 support(const std::vector<vec3>& verticesA, const std::vector<vec3>&
     return verticesA[indexA] - verticesB[indexB];
 }
 
-inline bool GJK(const std::vector<vec3>& verticesA,
-    const std::vector<vec3>& verticesB,
+inline bool GJK(const std::vector<vec3>&verticesB,
+    const std::vector<vec3>& verticesA,
     std::vector<vec3>& simplex,
     vec3& closestPointToOrigin,
     const double tolerance = std::numeric_limits<double>::epsilon(),
-    const int maxIterations = 100) {
+    const size_t maxIterations = 100) {
+
+ // Swap A and B to make the algorithm easier to read
+
+
+
+
     vec3 direction = verticesB[0] - verticesA[0]; // Initial direction
     if (direction.sqLength() == 0) {
         direction = vec3(1, 0, 0); // Arbitrary direction
@@ -235,6 +241,7 @@ inline bool GJK(const std::vector<vec3>& verticesA,
             #ifdef CMMCORE_DEBUG
             printf("GJK iterations: %d\n", iterations);
             #endif
+
             return false;
         }
 
@@ -245,6 +252,7 @@ inline bool GJK(const std::vector<vec3>& verticesA,
             #ifdef CMMCORE_DEBUG
             printf("GJK iterations: %d\n", iterations);
             #endif
+
             return true;
         }
     }
@@ -253,6 +261,7 @@ inline bool GJK(const std::vector<vec3>& verticesA,
 #ifdef CMMCORE_DEBUG
     printf("GJK iterations: %d\n", iterations);
 #endif
+
     throw std::runtime_error("GJK did not converge");
 }
 }

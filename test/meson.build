@@ -127,3 +127,19 @@ lph_test = executable('lph_test',
 test('lph_test',
      lph_test)
 
+# spatial_separability_test
+spatial_separability_test = executable('spatial_separability_test',
+                                       'spatial_separability_test.cpp',
+                                       include_directories : my_inc,
+                                       install : false
+)
+test('spatial_separability_test',
+     spatial_separability_test)
+# spherical_separability_test
+spherical_separability_test = executable('spherical_separability_test',
+                                         'spherical_separability_test.cpp',
+                                         include_directories : my_inc,
+                                         install : false
+)
+test('spherical_separability_test',
+     spherical_separability_test)
