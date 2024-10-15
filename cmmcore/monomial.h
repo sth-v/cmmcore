@@ -221,6 +221,7 @@ namespace cmmcore
             control_points = np.zeros((n, m, dim))
             for d in range(dim):
             control_points[:, :, d] = Mu_inv @ monomial_coeffs[:, :, d] @ Mv_inv.T*/
+
             CMMCORE_RESIZE_TENSOR2D(surf._control_points, n, m, vec4, 0, 0, 0, 1);
             Matrix Mv_inv_T = Mv_inv.transpose();
             for (int i = 0; i < 3; ++i)
@@ -236,6 +237,8 @@ namespace cmmcore
             surf.generate_knots_u();
             surf.generate_knots_v();
             surf.update_interval();
+
+
         }
 
         void computePartialDerivative(const SurfaceParameter variable, Monomial2D& result) const

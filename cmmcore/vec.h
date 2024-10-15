@@ -37,8 +37,10 @@ SOFTWARE.
 #include <cstddef>
 #ifdef CYTHON_ABI
 #include "limits.h"
+#include "hash.h"
 #else
 #include "cmmcore/limits.h"
+#include "cmmcore/hash.h"
 #endif
 #ifdef __ARM_NEON
 #include <arm_neon.h>
@@ -71,10 +73,10 @@ namespace cmmcore {
   
   struct vec2 {
     double x,y;
-    vec2() : x(0), y(0) {}
+    vec2() =default;
     vec2(const double value) : x(value), y(value) {}
     vec2(const double v1,const double v2 ) : x(v1), y(v2) {}
-    vec2(const std::array<double,2>& arr) : x(arr[0]), y(arr[1]) {}
+    explicit vec2(const std::array<double,2>& arr) : x(arr[0]), y(arr[1]) {}
     vec2(const vec2& from, const vec2& to) : x(to.x - from.x), y(to.y - from.y) {}
     size_t size() const {
       return 2;
@@ -425,15 +427,6 @@ struct vec3 {
 
 };
 
-  // Quantize to CMMCORE_DECIMALS decimal places
-
- inline int quantize(double value, int decimals) {
-    return static_cast<int>(value *  decimals);
-
-
-  }
-
-std::hash<double> doubleHash;
 
   struct Vec2Hash {
     size_t operator()(const vec2& v) const {
@@ -489,7 +482,7 @@ inline std::string format_vec3(const vec3 &v) {
   oss << "[" << v.x << "," << v.y << "," << v.z << "]";
   return oss.str();
 }
-inline std::string format_vec3vec(std::vector<vec3> &vecs) {
+inline std::string format_vec3vec(const std::vector<vec3> &vecs) {
   std::string repr("[");
   for (const auto& v : vecs) {
     repr+=format_vec3(v);
@@ -914,11 +907,14 @@ struct vec4 {
   void unitize() {
     if (const double l = length(); l <= std::numeric_limits<double>::epsilon() ||
         l - 1 <= std::numeric_limits<double>::epsilon()) {
-    } else {
-      x/=l;
-      y/=l;
-      z/=l;
-      w/=l;
+    } else
+    {
+      x/=(w*l);
+      y/=(w*l);
+      z/=(w*l);
+
+      w=1.;
+
     }
   }
   void normalize() {

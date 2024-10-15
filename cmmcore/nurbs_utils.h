@@ -30,8 +30,8 @@ namespace cmmcore {
      * The knot vector `U` is assumed to be non-decreasing and the parameter
      * `u` is within the range `[U[p], U[n+1]]`.
      *
-     * @param n The maximum index of the knot span, typically the number of basis functions minus one.
-     * @param p The degree of the B-spline or NURBS.
+     * @param n Number of control points - 1.
+     * @param degree The degree of the B-spline or NURBS.
      * @param u The parameter value for which the span index is to be found.
      * @param U The knot vector, a non-decreasing sequence of real numbers.
      * @param is_periodic Indicates if the curve is periodic.
@@ -48,52 +48,19 @@ namespace cmmcore {
      * int span = find_span(4, 2, 0.3, U, false);
      * // span should be 2
      */
-    inline int find_span(const int n, const int p, double u, const std::vector<double> &U,
-                         const bool is_periodic) noexcept {
-        //assert(U.size() >= static_cast<size_t>(n + 2));
-
-        const double U_min = U[p];
-        const double U_max = U[n + 1];
-        double period;
-
-        if (is_periodic) {
-            // Wrap u to be within the valid range for periodic and closed curves
-            period = U_max - U_min;
-            while (u < U_min) {
-                u += period;
-            }
-            while (u > U_max) {
-                u -= period;
-            }
-        } else {
-            // Clamp u to be within the valid range for open curves
-            if (u >= U[n + 1]) {
-                return n;
-            } else if (u < U[0]) {
-                return p;
-            }
+    inline int find_span(const int n, const int degree, double u, const std::vector<double> &U,
+                         const bool is_periodic) noexcept
+    {
+        int span = degree + 1 ;
+        const int control_points_count=n+1;
+        while (( span < control_points_count) && (U[span] <= u))
+        {
+            span += 1;
         }
 
-        // Handle special case for the upper boundary
-        if (u == U[n + 1]) {
-            return n;
-        }
 
-        // Binary search for the correct knot span
-        int low = p;
-        int high = n + 1;
-        int mid = (low + high) / 2;
+    return span - 1;
 
-        while (u < U[mid] || u >= U[mid + 1]) {
-            if (u < U[mid]) {
-                high = mid;
-            } else {
-                low = mid;
-            }
-            mid = (low + high) / 2;
-        }
-
-        return mid;
     }
 
     /**
@@ -670,111 +637,143 @@ namespace cmmcore {
      * @param is_periodic Indicates if the curve is periodic.
      * @return New control points after knot insertion.
      */
-    inline std::vector<vec4> knot_insertion(const int degree,
-                                                            const std::vector<double> &knots,
-                                                            const std::vector<vec4> &ctrlpts,
-                                                            const double u, const int num, const int s, const int span
-    ) {
-
-        int n = static_cast<int>(ctrlpts.size());//static_cast<int>(ctrlpts.size()) - 1;
-        int nq = n + num; //int nq = n + num + 1;
-
-        int dim = static_cast<int>(ctrlpts[0].size());
-
-        std::vector<vec4> result(nq, vec4(0.,0.,0.,0.));
-        std::vector<vec4> temp(degree + 1, vec4(0.,0.,0.,0.));
-
-        // Copy unaffected control points
-        for (int i = 0; i <= span - degree; ++i) {
-            result[i] = ctrlpts[i];
-        }
-        for (int i = span - s; i < n; ++i) {//for (int i = span - s + 1; i <= n; ++i) {
-            result[i + num] = ctrlpts[i];
-        }
-
-        // Copy affected control points
-        for (int i = 0; i <= degree - s; ++i) {
-            temp[i] = ctrlpts[span - degree + i];
-        }
-
-        // Knot insertion algorithm
-        for (int j = 1; j <= num; ++j) {
-            int L = span - degree + j;
-            for (int i = 0; i <= degree - j - s; ++i) {
-                double alpha = knot_insertion_alpha(u, knots, span, i, L);
-                for (int idx = 0; idx < dim; ++idx) {
-                    temp[i][idx] = alpha * temp[i + 1][idx] + (1.0 - alpha) * temp[i][idx];
-                }
-            }
-            //memcpy(&result[L][ 0], &temp[0][0], sizeof(double) * dim);
-            //memcpy(&result[span + num - j - s][ 0], &temp[(degree - j - s)][0], sizeof(double) * dim);
-            result[L] = temp[0];
-
-            result[span + num - j - s] = temp[degree - j - s];
-
-
-        }
-
-        // Copy remaining affected control points
-        int L = span - degree + num;
-        for (int i = L + 1; i < span - s + 1; ++i) {
-            result[i] = temp[i - L];
-        }
-
-        return result;
-    }
     inline void knot_insertion(const int degree,
                                                             const std::vector<double> &knots,
                                                             const std::vector<vec4> &ctrlpts,
-                                                            const double u, const int num, const int s, const int span,std::vector<vec4>& result
-    ) {
+                                                            const double u, const int num, const int s, const int span, std::vector<vec4>& ctrlpts_new
+    )
+    {
+        /*
+def knot_insertion(degree, knotvector, ctrlpts, u, **kwargs):
+    """ Computes the control points of the rational/non-rational spline after knot insertion.
 
-        int n = static_cast<int>(ctrlpts.size());//static_cast<int>(ctrlpts.size()) - 1;
-        //int nq = n + num; //int nq = n + num + 1;
+    Part of Algorithm A5.1 of The NURBS Book by Piegl & Tiller, 2nd Edition.
 
-        int dim = static_cast<int>(ctrlpts[0].size());
+    Keyword Arguments:
+        * ``num``: number of knot insertions. *Default: 1*
+        * ``s``: multiplicity of the knot. *Default: computed via :func:`.find_multiplicity`*
+        * ``span``: knot span. *Default: computed via :func:`.find_span_linear`*
+
+    :param degree: degree
+    :type degree: int
+    :param knotvector: knot vector
+    :type knotvector: list, tuple
+    :param ctrlpts: control points
+    :type ctrlpts: list
+    :param u: knot to be inserted
+    :type u: float
+    :return: updated control points
+    :rtype: list
+    """
+    # Get keyword arguments
+    num = kwargs.get('num', 1)  # number of knot insertions
+    s = kwargs.get('s', find_multiplicity(u, knotvector))  # multiplicity
+    k = kwargs.get('span', find_span_linear(degree, knotvector, len(ctrlpts), u))  # knot span
+
+    # Initialize variables
+    np = len(ctrlpts)
+    nq = np + num
+    # Initialize new control points array (control points may be weighted or not)
+    ctrlpts_new = [[] for _ in range(nq)]
+
+    # Initialize a local array of length p + 1
+    temp = [[] for _ in range(degree + 1)]
+*/
+
+        size_t np= ctrlpts.size();
+        size_t nq = np + num;
+        ctrlpts_new.resize(nq);
+        auto temp = std::vector<vec4>(degree + 1);
 
 
-        std::vector<vec4> temp(degree + 1, vec4(0.,0.,0.,0.));
+/*
+    # Save unaltered control points
+    for i in range(0, k - degree + 1):
+        ctrlpts_new[i] = ctrlpts[i]
+    for i in range(k - s, np):
+        ctrlpts_new[i + num] = ctrlpts[i]
 
-        // Copy unaffected control points
-        for (int i = 0; i <= span - degree; ++i) {
-            result[i] = ctrlpts[i];
+    # Start filling the temporary local array which will be used to update control points during knot insertion
+    for i in range(0, degree - s + 1):
+        temp[i] = deepcopy(ctrlpts[k - degree + i])
+*/
+    for (size_t i = 0; i < ( span - degree + 1); ++i)
+    {
+        ctrlpts_new[i] = ctrlpts[i];
         }
-        for (int i = span - s; i < n; ++i) {//for (int i = span - s + 1; i <= n; ++i) {
-            result[i + num] = ctrlpts[i];
+    for (size_t i = span - s; i < np ; ++i)
+        {
+            ctrlpts_new[i + num] = ctrlpts[i];
         }
-
-        // Copy affected control points
-        for (int i = 0; i <= degree - s; ++i) {
+        for (size_t i = 0; i < ( degree - s + 1); ++i)
+        {
             temp[i] = ctrlpts[span - degree + i];
         }
 
-        // Knot insertion algorithm
-        for (int j = 1; j <= num; ++j) {
-            int L = span - degree + j;
-            for (int i = 0; i <= degree - j - s; ++i) {
-                double alpha = knot_insertion_alpha(u, knots, span, i, L);
-                for (int idx = 0; idx < dim; ++idx) {
-                    temp[i][idx] = alpha * temp[i + 1][idx] + (1.0 - alpha) * temp[i][idx];
-                }
+/*
+    # Insert knot "num" times
+    for j in range(1, num + 1):
+        L = k - degree + j
+        for i in range(0, degree - j - s + 1):
+            alpha = knot_insertion_alpha(u, tuple(knotvector), k, i, L)
+            if isinstance(temp[i][0], float):
+
+
+                temp[i][:] = [alpha * elem2 + (1.0 - alpha) * elem1 for elem1, elem2 in zip(temp[i], temp[i + 1])]
+            else:
+                for idx in range(len(temp[i])):
+                    temp[i][idx][:] = [alpha * elem2 + (1.0 - alpha) * elem1 for elem1, elem2 in
+                                       zip(temp[i][idx], temp[i + 1][idx])]
+        ctrlpts_new[L] = deepcopy(temp[0])
+        ctrlpts_new[k + num - j - s] = deepcopy(temp[degree - j - s])
+*/
+        size_t L;
+        for (size_t j=1;j<num+1; ++j)
+        {
+            L = span - degree + j;
+            for (size_t i = 0; i < ( degree - j - s + 1); ++i)
+            {
+                auto alpha = knot_insertion_alpha(u, knots,  span, i, L);
+                // lerp : alpha * v_2 + (1 - alpha) * v_1
+                temp[i]=temp[i+1]*alpha+temp[i] *(1-alpha);
+
+
             }
-            //memcpy(&result[L][ 0], &temp[0][0], sizeof(double) * dim);
-            //memcpy(&result[span + num - j - s][ 0], &temp[(degree - j - s)][0], sizeof(double) * dim);
-            result[L] = temp[0];
+            ctrlpts_new[L] = temp[0];
+            ctrlpts_new[span + num - j - s]=temp[degree-j-s];
 
-            result[span + num - j - s] = temp[degree - j - s];
 
 
         }
 
-        // Copy remaining affected control points
-        int L = span - degree + num;
-        for (int i = L + 1; i < span - s + 1; ++i) {
-            result[i] = temp[i - L];
-        }
+        /*
+    # Load remaining control points
+    L = k - degree + num
+    for i in range(L + 1, k - s):
+        ctrlpts_new[i] = deepcopy(temp[i - L])
+    # Return control points after knot insertion
+    return ctrlpts_new
+*/
+    L = span - degree + num;
+
+    for (size_t i = L + 1; i < ( span - s); ++i)
+    {
+        ctrlpts_new[i]=temp[i-L];
+
+    }
 
 
+    }
+
+
+    inline std::vector<vec4> knot_insertion(const int degree,
+                                                            const std::vector<double> &knots,
+                                                            const std::vector<vec4> &ctrlpts,
+                                                            const double u, const int num, const int s, const int span)
+    {
+        std::vector<vec4> ctrlpts_new;
+        knot_insertion(degree,knots,ctrlpts,u,num,s,span,ctrlpts_new);
+        return ctrlpts_new;
     }
 
     /**

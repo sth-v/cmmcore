@@ -20,7 +20,6 @@ namespace cmmcore
         equation.w = -pt0.x * x4 + pt0.x * pt2.y * pt1.z - pt1.x * x5 + pt1.x * pt0.y * pt2.z - pt2.x * x3 + pt2.x * pt1
             .y * pt0.z;
     }
-
     inline double planeSignedDistance(const vec3& pt, const vec4& plane)
     {
         return plane.x * pt.x + plane.y * pt.y + plane.z * pt.z + plane.w;
@@ -357,5 +356,6 @@ namespace cmmcore
         }
 
     };
+
 };
 #endif //PLANE_H

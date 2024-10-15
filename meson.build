@@ -12,8 +12,8 @@ cmmcore_sources=[   'cmmcore/vec.h',
                                 'cmmcore/polygon.h',
                                 'cmmcore/polyline.h',
                                 'cmmcore/monomial.h',
-                                'cmmcore/gauss_map.h',
-  'cmmcore/lp.h'
+                                'cmmcore/gauss_map.h'
+
 ]
 cmmcore_wasm_binding_sources=['wasm/cmmcore.cpp']
 

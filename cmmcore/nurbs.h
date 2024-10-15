@@ -15,11 +15,12 @@
 
 #ifdef CYTHON_ABI
 #include "nurbs_utils.h"
+#include "utils.h"
 #include "aabb.h"
 #else
 #include "cmmcore/nurbs_utils.h"
 #include "cmmcore/aabb.h"
-
+#include "cmmcore/utils.h"
 #endif
 
 
@@ -440,6 +441,26 @@ namespace cmmcore {
 
     // External function declarations
 
+    inline void flipControlPointsU(const std::vector<std::vector<vec4>> &cpts,std::vector<std::vector<vec4>> &result )
+
+    {
+        size_t size_u=cpts.size();
+        size_t size_v=cpts[0].size();
+        result.clear();
+
+
+        for (size_t i = 0; i <  size_v; i++) {
+            std::vector<vec4> new_row{};
+            for (size_t j = 0; j < size_u; j++) {
+                new_row.push_back(cpts[j][i]);
+
+
+            }
+            result.push_back(new_row);
+
+        }
+
+    }
     class NURBSSurface {
     public:
         NURBSSurface() = default;
@@ -486,27 +507,47 @@ namespace cmmcore {
             surface_point(_size[0] - 1, _degree[0], _knots_u, _size[1] - 1, _degree[1], _knots_v, _control_points, u, v,
                           0, 0, result);
         }
+        void insert_knot(const double t, const int direction, const int count ) {
 
-        void insert_knot_u(double t, int count) {
-            std::size_t new_count_u = _control_points.size() + count;
-            std::size_t new_count_v = _control_points[0].size();
-            auto cpts = _control_points;
-            int span = find_span(static_cast<int>(_size[0] - 1), _degree[0], t, _knots_u, false);
-            auto k_v = knot_insertion_kv(_knots_u, t, span, count);
-            int s_u = find_multiplicity(t, _knots_u);
-            std::vector<std::vector<vec4> > new_control_points(new_count_u,
-                                                               std::vector<vec4>(new_count_v, {0, 0, 0, 1}));
-            for (std::size_t v = 0; v < new_count_v; ++v) {
-                std::vector<vec4> col(new_count_u);
-                knot_insertion(_degree[0], _knots_u, cpts[v], t, count, s_u, span, col);
-                for (std::size_t u = 0; u < new_count_u; ++u) {
-                    new_control_points[u][v] = col[u];
+
+            if (direction == 0) {
+                int s = find_multiplicity(t,  _knots_u);
+                int span = find_span(_control_points.size() - 1, _degree[0], t, _knots_u, false);
+
+                auto kv = knot_insertion_kv(_knots_u, t, span, count);
+                std::vector<std::vector<vec4> >  cpts_tmp;
+                std::vector<vec4>cpts=control_points_flat();
+
+                for (size_t v = 0; v < _size[1]; ++v)
+                {
+                    std::vector<vec4> ccu;
+                    for (size_t u = 0; u < _size[0]; ++u)
+                    {
+                       ccu.push_back(cpts[u*_size[1] +v]);
+
+                    }
+
+
+                    cpts_tmp.push_back(knot_insertion(_degree[0], _knots_u, ccu, t,count, s, span));
+
                 }
-            }
-            _control_points = std::move(new_control_points);
-            _knots_u = std::move(k_v);
-            _size[0] = new_count_u;
-            update_interval();
+
+
+
+
+                flipControlPointsU(cpts_tmp, _control_points);
+
+                _size[0]+=count;
+
+                _knots_u=kv;
+
+
+
+            } else {
+                insert_knot_v(t, count);
+            }}
+        void insert_knot_u(double t, int count) {
+            insert_knot(t, 0, count);
         }
 
         void insert_knot_v(double t, int count) {
@@ -534,12 +575,17 @@ namespace cmmcore {
                 std::fabs(param - _interval[0][1]) <= tol) {
                 throw std::invalid_argument("Cannot split from the domain edge");
             }
-            int ks = find_span(static_cast<int>(_size[0]), _degree[0], param, _knots_u, false) - _degree[0] + 1;
+            int ks = find_span(static_cast<int>(_size[0]-1), _degree[0], param, _knots_u, false) - _degree[0] + 1;
             int s = find_multiplicity(param, _knots_u);
+
             int r = _degree[0] - s;
             NURBSSurface temp_obj = *this;
+
             temp_obj.insert_knot_u(param, r);
-            int knot_span = find_span(static_cast<int>(temp_obj._size[0]), _degree[0], param, temp_obj._knots_u,
+            std::vector<double> temp_knots_u =temp_obj._knots_u;
+            std::vector<std::vector<vec4>> tcpts=temp_obj._control_points;
+
+            int knot_span = find_span(static_cast<int>(temp_obj._size[0]-1), _degree[0], param,temp_knots_u,
                                       false) + 1;
             std::vector<double> surf1_kv(temp_obj._knots_u.begin(), temp_obj._knots_u.begin() + knot_span);
             std::vector<double> surf2_kv(temp_obj._knots_u.begin() + knot_span, temp_obj._knots_u.end());
@@ -561,12 +607,12 @@ namespace cmmcore {
                 std::fabs(param - _interval[1][1]) <= tol) {
                 throw std::invalid_argument("Cannot split from the domain edge");
             }
-            int ks = find_span(static_cast<int>(_size[1]), _degree[1], param, _knots_v, false) - _degree[1] + 1;
+            int ks = find_span(static_cast<int>(_size[1]-1), _degree[1], param, _knots_v, false) - _degree[1] + 1;
             int s = find_multiplicity(param, _knots_v);
             int r = _degree[1] - s;
             NURBSSurface temp_obj = *this;
             temp_obj.insert_knot_v(param, r);
-            int knot_span = find_span(static_cast<int>(temp_obj._size[1]), _degree[1], param, temp_obj._knots_v,
+            int knot_span = find_span(static_cast<int>(temp_obj._size[1]-1), _degree[1], param, temp_obj._knots_v,
                                       false) + 1;
             std::vector<double> surf1_kv(temp_obj._knots_v.begin(), temp_obj._knots_v.begin() + knot_span);
             std::vector<double> surf2_kv(temp_obj._knots_v.begin() + knot_span, temp_obj._knots_v.end());
@@ -596,19 +642,24 @@ namespace cmmcore {
             };
             return control_points_flt;
         }
-
-        std::vector<vec3> control_points_flat3d() const {
-            std::vector<vec3> control_points_flt(_size[0] * _size[1]);
-            double w;
+        void control_points_flat3d(std::vector<vec3>& control_points_flt ) const {
+            control_points_flt.resize(_size[0] * _size[1]);
             for (std::size_t i = 0; i < _size[0]; ++i) {
                 for (std::size_t j = 0; j < _size[1]; ++j) {
-                    w = _control_points[i][j].w;
+                    const double w = _control_points[i][j].w;
                     control_points_flt[i * _size[1] + j].set(_control_points[i][j].x / w, _control_points[i][j].y / w,
                                                              _control_points[i][j].z / w);
                 }
             };
+
+        }
+        std::vector<vec3> control_points_flat3d() const
+        {
+            std::vector<vec3> control_points_flt;
+            control_points_flat3d(control_points_flt);
             return control_points_flt;
         }
+
 
         const std::vector<std::vector<vec4> > &control_points() const {
             return _control_points;
@@ -636,9 +687,12 @@ namespace cmmcore {
             NURBSSurface &s11,
             NURBSSurface &s12,
             NURBSSurface &s21,
-            NURBSSurface &s22) {
-            auto umid = 0.5 * (_interval[0][1] + _interval[0][0]);
-            auto vmid = 0.5 * (_interval[1][1] + _interval[1][0]);
+            NURBSSurface &s22,
+            double umid,
+            double vmid
+            ) {
+            //auto umid = 0.5 * (_interval[0][1] + _interval[0][0]);
+            //auto vmid = 0.5 * (_interval[1][1] + _interval[1][0]);
             auto [s1,s2] = split_surface_u(umid);
             auto [_s11,_s12] = s1.split_surface_v(vmid);
             auto [_s21,_s22] = s2.split_surface_v(vmid);
@@ -647,9 +701,19 @@ namespace cmmcore {
             s21 = std::move(_s21);
             s22 = std::move(_s22);
         }
+        void subdivide(
+            NURBSSurface &s11,
+            NURBSSurface &s12,
+            NURBSSurface &s21,
+            NURBSSurface &s22
 
+            ) {
+            auto umid = 0.5 * (_interval[0][1] + _interval[0][0]);
+            auto vmid = 0.5 * (_interval[1][1] + _interval[1][0]);
+            subdivide(s11,s12,s21,s22,umid,vmid);
+        }
         AABB &bbox() {
-            if (_bbox.min == _bbox.max) {
+
                 _bbox.min.set(_control_points[0][0].to_vec3());
                 _bbox.max.set(_control_points[0][0].to_vec3());
 
@@ -660,7 +724,7 @@ namespace cmmcore {
                         _bbox.expand(pt.to_vec3());
                     }
                 }
-            }
+
             return _bbox;
         }
 

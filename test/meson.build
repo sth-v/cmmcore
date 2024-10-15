@@ -118,14 +118,6 @@ ssx_test = executable('ssx_test',
 test('ssx_test',
      ssx_test)
 
-# lph_test
-lph_test = executable('lph_test',
-                      'lph_test.cpp',
-                      include_directories : my_inc,
-                      install : false
-)
-test('lph_test',
-     lph_test)
 
 # spatial_separability_test
 spatial_separability_test = executable('spatial_separability_test',

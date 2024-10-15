@@ -305,7 +305,7 @@ namespace cmmcore{
 
     SphericalAABB() = default;
 
-    SphericalAABB(const std::vector<vec3> &pts, const vec3 &center = 0): start(0), end(0) {
+    SphericalAABB(std::vector<vec3> &pts, const vec3 &center = 0): start(0), end(0) {
       std::vector<vec3> sphere_points1;
       project_to_sphere(pts, center, sphere_points1);
       for (int axis = 0; axis < 3; ++axis) {
@@ -326,6 +326,7 @@ namespace cmmcore{
     }
 
     bool separable(const SphericalAABB &other) const {
+
       for (int axis = 0; axis < 3; ++axis) {
         if ((end[axis] < other.start[axis] && other.end[axis] > start[axis]) || (
               other.end[axis] < start[axis] && end[axis] > other.start[axis])) {

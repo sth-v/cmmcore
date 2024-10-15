@@ -30,12 +30,29 @@ SOFTWARE.
 namespace cmmcore {
 #define EPS_DELTA 1e-12
 
+    template <typename T>
+    void vectorColumn(const std::vector<std::vector<T>>& matrix, const  size_t columnIndex,std::vector<T>& column) {
+        column.resize(matrix[0].size());
+        size_t i=0;
+        for (const auto& row : matrix) {
+
+            if (columnIndex < row.size()) {
+                column[i]=row[columnIndex];
+            } else {
+                throw std::out_of_range("Column index is out of range");
+            }
+            i++;
+        }
+
+    }
+
 /**
  * @brief Calculates an epsilon value for a given number.
  *
  * @param x The input number.
  * @return The calculated epsilon value.
  */
+
 inline double calc_epsilon(const double x) noexcept {
     const double relative_epsilon = std::numeric_limits<double>::epsilon() * std::fabs(x);
     constexpr double absolute_epsilon = std::numeric_limits<double>::denorm_min();
