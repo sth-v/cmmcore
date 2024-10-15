@@ -18,107 +18,132 @@
 #include "cmmcore/monomial.h"
 #include "cmmcore/nurbs.h"
 #endif
-namespace cmmcore{
+#include "separability.h"
 
-class GaussMap {
+namespace cmmcore
+{
+  void inverseControlPoints(  const std::vector<vec3>& pts, std::vector<vec3>&pts_inv)
+  {
+    pts_inv.resize(pts.size());
 
-    public:
-    NURBSSurface surf;
-    std::vector<vec2> hull;
 
-    GaussMap()=default;
-    GaussMap( NURBSSurface& _surf, std::vector<vec2> &_hull):surf(std::move(_surf)),hull(std::move(_hull)) {
 
-    };
-    GaussMap(const NURBSSurface& srf) {
-        build(srf);
+    for (size_t i = 0; i < pts.size(); ++i)
+    {
+      pts_inv[i].set(-pts[i].x, -pts[i].y, -pts[i].z);
+
+    }
+  }
+  class GaussMap
+  {
+
+
+  public:
+    std::vector<vec3> pts;
+    std::vector<vec3> pts_inv;
+
+    void solveInvPts()
+    {
+      pts_inv.clear();
+      pts_inv.reserve(pts.size());
+      for (auto& p : pts)
+      {
+        pts_inv.emplace_back(-p.x, -p.y, -p.z);
 
       }
+    }
+
+    NURBSSurface surf{};
 
 
-  void build(const NURBSSurface & srf) {
+    GaussMap() = default;
 
-    //Tensor3D control_points(srf._size[0], Matrix(srf._size[1], 3));
+    GaussMap( NURBSSurface& srf)
+    {
+      build(srf);
+    }
 
-      auto mono=Monomial2D(srf);
+
+    void build( NURBSSurface& srf)
+    {
+      //Tensor3D control_points(srf._size[0], Matrix(srf._size[1], 3));
+
+      auto mono = Monomial2D(srf);
       Monomial2D normal;
       mono.computeNormal(normal);
       normal.to_bezier(surf);
+      surf.control_points_flat3d(pts);
 
 
+      solveInvPts();
 
-      std::vector<vec3>flatcpts=surf.control_points_flat3d();
-      std::vector<vec2> pts(flatcpts.size());
-      pts.resize(surf._size[0]*surf._size[1]);
+      //cartesian_to_spherical(flatcpts[i], pts[i]);
+    }
 
-      for (int i = 0; i < (flatcpts.size()); i++) {
+    bool separabilityTest(GaussMap& other)
+    {
 
-        flatcpts[i].unitize();
-        cartesian_to_spherical(flatcpts[i], pts[i]);
-      }
-
-      hull=std::move(convex_hull2d(pts));
-
-
-  }
-  bool separabilityTest(const GaussMap& other) {
-
-    switch (polygonRelationship2D(hull,other.hull)) {
-      case PolygonRelationship2D::INTERSECT:
-        return false;
-      case PolygonRelationship2D::TOUCH:
-        return true;
-      case PolygonRelationship2D::DISTANCE:
-        return true;
-      default:
-        throw std::runtime_error("GaussMap::separabilityTest: Unknown polygonRelationship");
+      SphericalSeparabilityTest(pts, other.pts);
+      return (SphericalSeparabilityTest(pts, other.pts) &&
+        SphericalSeparabilityTest(pts, other.pts_inv) &&
+        SphericalSeparabilityTest(pts_inv, other.pts_inv) &&
+        SphericalSeparabilityTest(pts_inv, other.pts));
     }
 
 
-  }
-    void subdivide(GaussMap& g11,GaussMap& g12,GaussMap& g21,GaussMap& g22)  {
+    void subdivide(GaussMap& g11, GaussMap& g12, GaussMap& g21, GaussMap& g22)
+    {
+      const auto pts1 = surf.control_points_flat3d();
+      auto umid = 0.5 * (surf._interval[0][1] + surf._interval[0][0]);
+      auto vmid = 0.5 * (surf._interval[1][1] + surf._interval[1][0]);
+      surf.subdivide(g11.surf,g12.surf,g21.surf,g22.surf, umid, vmid);
 
-      auto umid=0.5*(surf._interval[0][1]+surf._interval[0][0]);
-      auto vmid=0.5*(surf._interval[1][1]+surf._interval[1][0]);
-      auto [s1,s2]=surf.split_surface_u(       umid);
-      auto [s11,s12]=s1.split_surface_v( vmid);
-      auto [s21,s22]=s2.split_surface_v( vmid);
+      //auto [s1,s2] = surf.split_surface_u(umid);
+      //auto [s11,s12] = s1.split_surface_v(vmid);
+      //auto [s21,s22] = s2.split_surface_v(vmid);
 
-      std::vector<vec2> pts{};
-
-
-      cartesian_to_spherical(s11.control_points_flat3d(),pts);
-
-      g11.surf=std::move(s11);
-      g11.hull=std::move(convex_hull2d(pts));
-
-      pts.clear();
-
-      cartesian_to_spherical(s12.control_points_flat3d(),pts);
-
-      g12.surf=std::move(s12);
-      g12.hull=std::move(convex_hull2d(pts));
-      pts.clear();
-
-      cartesian_to_spherical(s21.control_points_flat3d(),pts);
-
-      g21.surf=std::move(s21);
-      g21.hull=std::move(convex_hull2d(pts));
-
-      pts.clear();
-
-      cartesian_to_spherical(s22.control_points_flat3d(),pts);
+       g11.surf.control_points_flat3d( g11.pts);
+      g11.solveInvPts();
 
 
-      g22.surf=std::move(s22);
-      g22.hull=std::move(convex_hull2d(pts));
+      g12.surf.control_points_flat3d( g12.pts);
+      g12.solveInvPts();
+
+
+      g21.surf.control_points_flat3d( g21.pts);
+      g21.solveInvPts();
+
+
+      g22.surf.control_points_flat3d( g22.pts);
+      g22.solveInvPts();
 
 
     }
+  };
+  NURBSSurface gaussMap(const NURBSSurface& srf)
+  {
+    auto mono = Monomial2D(srf);
+    Monomial2D normal;
+    mono.computeNormal(normal);
+    NURBSSurface surf{};
+    normal.to_bezier(surf);
+    return surf;
+  }
+  bool gaussMapSeparability(const NURBSSurface& srf1,const NURBSSurface& srf2)
+  {
+    std::vector<vec3>pts1=srf1.control_points_flat3d();;
+    std::vector<vec3>pts2=srf2.control_points_flat3d();;
+    std::vector<vec3>pts1_inv;
+    std::vector<vec3>pts2_inv;
+    inverseControlPoints(pts1,pts1_inv);
+    inverseControlPoints(pts2,pts2_inv);
+
+    return (SphericalSeparabilityTest(pts1,pts2)&&
+    SphericalSeparabilityTest(pts1,pts2_inv)&&
+    SphericalSeparabilityTest(pts1_inv,pts2_inv)&&
+    SphericalSeparabilityTest(pts1_inv,pts2));
 
 
-
-};
-
+  }
 }
 #endif //GAUSS_MAP_H

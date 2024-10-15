@@ -258,12 +258,19 @@ namespace cmmcore
 
     GJK(hull1,hull2, simplex,closestPointToOrigin,eps);
 #ifdef CMMCORE_DEBUG
+    auto ff=closestPointToOrigin.length();
     t.stop();
-    t.print("GJK at: ");
+    printf("%f ",ff );
+    ff>eps? printf("no collision"): printf("collision detected");
+    t.print("\nGJK at: ");
+
+
+#else
+    auto ff=closestPointToOrigin.length();
 #endif
 
 
-    return closestPointToOrigin.length()>0;
+    return ff>eps;
   }
 
 
@@ -280,13 +287,13 @@ namespace cmmcore
 
 
 
-  inline bool SphericalAABBTest(const std::vector<vec3>& pts1,const std::vector<vec3>& pts2) {
+  inline bool SphericalAABBTest( std::vector<vec3>& pts1, std::vector<vec3>& pts2) {
     const SphericalAABB bb1(pts1);
     const SphericalAABB bb2(pts2);
     return bb1.separable(bb2);
   }
 
-  using Vec3Set=std::unordered_set<vec3, Vec3HashHighPrecision,Vec3EqualHighPrecision> ;
+  using Vec3Set=std::unordered_set<vec3, Vec3Hash,Vec3Equal> ;
 
 
   inline bool contains( const Vec3Set& s, const vec3& val) {
@@ -295,19 +302,23 @@ namespace cmmcore
 
 
 
-  inline bool SphericalSeparabilityTest(const std::vector<vec3>& pts1,const std::vector<vec3>& pts2) {
+  inline bool SphericalCentralProjectionTest(std::vector<vec3>& pts1, std::vector<vec3>& pts2) {
+
     std::vector<vec2> poly1(pts1.size());
     std::vector<vec2> poly2(pts2.size());
+
     vec3 O(0,0,1);
     for (size_t i=0;i<pts1.size();i++)
     {
-      centerProjectionToXY(O, pts1[i],poly1[i]);
+
+      centerProjectionToXY(O, pts1[i].unit(),poly1[i]);
     }
     for (size_t j=0;j<pts2.size();j++)
     {
-      centerProjectionToXY(O, pts2[j],poly2[j]);
+      centerProjectionToXY(O, pts2[j].unit(),poly2[j]);
 
     }
+
 #ifdef CMMCORE_DEBUG
     printf("\n\n[");
     for (auto& p:poly1)
@@ -349,7 +360,18 @@ namespace cmmcore
     return SAT2D(h1,h2);
 
     }
+inline bool SphericalSeparabilityTest( std::vector<vec3>& pts1, std::vector<vec3>& pts2) {
 
+    //printf(("SEPTEST\n\n["+format_vec3vec(pts1)+"],["+format_vec3vec(pts2)+"]").c_str());
+   // if (SphericalAABBTest(pts1,pts2))
+    //{
+
+   //   printf("BBB");
+   //   return true;
+    //}
+    return SphericalCentralProjectionTest(pts1,pts2);
+
+  }
 
     /*
      * If the two objects are already known to intersect at a point and one

@@ -204,12 +204,12 @@ inline vec3 support(const std::vector<vec3>& verticesA, const std::vector<vec3>&
     return verticesA[indexA] - verticesB[indexB];
 }
 
-inline bool GJK(const std::vector<vec3>&verticesB,
-    const std::vector<vec3>& verticesA,
+inline bool GJK(const std::vector<vec3>&verticesA,
+    const std::vector<vec3>& verticesB,
     std::vector<vec3>& simplex,
     vec3& closestPointToOrigin,
     const double tolerance = std::numeric_limits<double>::epsilon(),
-    const size_t maxIterations = 100) {
+    const size_t maxIterations = 25) {
 
  // Swap A and B to make the algorithm easier to read
 
@@ -260,9 +260,11 @@ inline bool GJK(const std::vector<vec3>&verticesB,
     // Should not reach here
 #ifdef CMMCORE_DEBUG
     printf("GJK iterations: %d\n", iterations);
+    printf(("["+format_vec3vec( verticesA)+","+format_vec3vec( verticesB)+"]\n\n" ).c_str() );
 #endif
-
-    throw std::runtime_error("GJK did not converge");
+    closestPointToOrigin = {0.0, 0.0, 0.0};
+    printf("WARNING GJK did not converge");
+    return true;
 }
 }
 #endif //CMMCORE_GJK_H
