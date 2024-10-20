@@ -11,22 +11,12 @@
 #include <algorithm>
 #include "cmmcore/gjk.h"
 #include "cmmcore/numeric_utils.h"
-#include "cmmcore/plane.h"
-#ifdef CMMCORE_DEBUG
 #include "cmmcore/utils.h"
+#ifdef CMMCORE_DEBUG
+
 #endif
 namespace cmmcore
 {
-  // SIMD-optimized AABB (Axis-Aligned Bounding Box)
-  /**
-   * @brief Represents an axis-aligned bounding box with SIMD optimization.
-   *
-   * This structure is designed to work efficiently with SIMD intrinsics on ARM
-   * and x86 architectures.
-   */
-
-
-
 
   inline bool AABBTest(const std::vector<vec3>& pts1,const std::vector<vec3>& pts2) {
     const AABB bb1(pts1);

@@ -8,18 +8,18 @@ from libcpp.pair cimport pair
 from libcpp cimport bool
 from libcpp.memory cimport unique_ptr
 from cmmcore.vec cimport vec3,vec4
-cdef extern from "bvh.hpp"  namespace "cmmcore" nogil:
 
+cdef extern from "bvh.hpp" namespace "cmmcore" nogil:
 
     cdef cppclass AABB:
-        AABB()
-        AABB(const vec3 &min, const vec3 &max)
-        bool infinity() const
-        bool intersects(const AABB &other) const
-        bool intersection(const AABB &other, AABB &result) const
-        AABB merge(const AABB &other) const
-        double volume() const
-        void expand(const vec3& point)
+         AABB()
+         AABB(const vec3 &min, const vec3 &max)
+         bool infinity() const
+         bool intersects(const AABB &other) const
+         bool intersection(const AABB &other, AABB &result) const
+         AABB merge(const AABB &other) const
+         double volume() const
+         void expand(const vec3& point)
 
     cdef cppclass Object3D:
         Object3D()
@@ -37,6 +37,7 @@ cdef extern from "bvh.hpp"  namespace "cmmcore" nogil:
     vec3 compute_extents(const AABB &bbox)
     ctypedef  Object3D* Object3D_Ptr
     ctypedef  const BVHNode* const_BVHNode_Ptr
+
     pair[vector[Object3D_Ptr], vector[Object3D_Ptr]] split_objects(vector[Object3D *] &objects)
 
     unique_ptr[BVHNode] build_bvh_top_down(vector[Object3D *] &objects)
@@ -44,10 +45,12 @@ cdef extern from "bvh.hpp"  namespace "cmmcore" nogil:
 
     unique_ptr[BVHNode] build_bvh(vector[Object3D *] &objects, bool use_bottom_up)
 
-    void intersect_bvh_iterative(const BVHNode* node1, const BVHNode* node2, vector[pair[const_BVHNode_Ptr, const_BVHNode_Ptr]]& intersections)
-    void intersect_bvh(const BVHNode *node1, const BVHNode *node2, vector[pair[const_BVHNode_Ptr, const_BVHNode_Ptr]] &intersections)
+    void intersect_bvh_iterative(const BVHNode* node1, const BVHNode* node2, 
+                       vector[pair[const_BVHNode_Ptr, const_BVHNode_Ptr]]& intersections)
+    void intersect_bvh(const BVHNode *node1, const BVHNode *node2, 
+                       vector[pair[const_BVHNode_Ptr, const_BVHNode_Ptr]] &intersections)
 
-    void traverse_bvh(const BVHNode *node, const AABB &target_bbox, vector[const Object3D *] &results)
+    void traverse_bvh(const BVHNode *node, const AABB &target_bbox,vector[const Object3D *] &results)
     void contains_point(const BVHNode *bvh_root, const vec3 &pt, vector[const Object3D *] &results)
 
     string output_bvh_nodes(const BVHNode *node)

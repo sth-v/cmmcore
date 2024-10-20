@@ -3,11 +3,11 @@
 # Compiler
 CXX = emcc
 OPTIMIZATION = -O3
-CXXFLAGS = $(OPTIMIZATION) -std=c++17 -s MODULARIZE=1 -s EXPORT_NAME="cmmcore" --bind
+CXXFLAGS = $(OPTIMIZATION) -std=c++17 -s MODULARIZE=1 -s EXPORT_NAME="cmmcore_wasm" --bind
 
 # Directories
 SRCDIR = .
-INCDIR = ..
+INCDIR = ../..
 OBJDIR = .
 BINDIR = .
 SYSLB2 =

@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wasm Demo</title>
+    <script src="cmmcore.js"></script>
+</head>
+<body>
+<script>
+    cmmcore().then(cmm => {
+        const vec3 = cmm.vec3;
+        const vec4 = cmm.vec4;
+        const NURBSSurface = cmm.NURBSSurface;
+        const controlPointsArray = [
+            [[0.62, 0.21, 0.75, 1.], [0.13, 0.85, 0.19, 1.], [0.89, 0.64, 0.07, 1.], [0.91, 0.41, 0.52, 1.]],
+            [[0.50, 0.88, 0.78, 1.], [0.25, 0.33, 0.46, 1.], [0.71, 0.56, 0.05, 1.], [0.13, 0.81, 0.33, 1.]],
+            [[0.75, 0.64, 0.14, 1.], [0.35, 0.60, 0.11, 1.], [0.17, 0.12, 0.91, 1.], [0.06, 0.53, 0.10, 1.]],
+            [[0.05, 0.59, 0.02, 1.], [0.17, 0.86, 0.62, 1.], [0.42, 0.73, 0.41, 1.], [0.33, 0.57, 0.53, 1.]]
+        ];
+
+
+        // Create some control points (2x2 grid of vec4)
+        const controlPoints = cmm.create2DVector(4, 4, new vec4(0.0, 0.0, 0.0, 1.0))
+
+        // Create control points as vector<vector<vec4>>
+
+        // Row 1 of control points
+
+        cmm.convertJSArrayToNURBSSurfaceControlPoints(controlPointsArray, controlPoints)
+
+        // Define the degree of the surface
+        const degree = [3, 3];
+
+        // Optionally, define the knot vectors (empty in this case)
+        const knotsU = new cmm.vector_double();
+        const knotsV = new cmm.vector_double();
+
+        // Create a NURBSSurface instance
+        const surface = new NURBSSurface(controlPoints, degree, knotsU, knotsV);
+
+        // Evaluate the surface at u=0.5, v=0.5
+        const result = new vec3();
+        surface.evaluate(0.5, 0.5, result);
+
+        console.log("Evaluated surface point:", result.x, result.y, result.z);
+    });
+
+</script>
+
+
+</body>
+</html>

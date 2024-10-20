@@ -638,131 +638,37 @@ namespace cmmcore {
      * @return New control points after knot insertion.
      */
     inline void knot_insertion(const int degree,
-                                                            const std::vector<double> &knots,
-                                                            const std::vector<vec4> &ctrlpts,
-                                                            const double u, const int num, const int s, const int span, std::vector<vec4>& ctrlpts_new
+        const std::vector<double> &knots,
+        const std::vector<vec4> &ctrlpts,
+        const double u, const int num, const int s, const int span, std::vector<vec4>& ctrlpts_new
     )
     {
-        /*
-def knot_insertion(degree, knotvector, ctrlpts, u, **kwargs):
-    """ Computes the control points of the rational/non-rational spline after knot insertion.
-
-    Part of Algorithm A5.1 of The NURBS Book by Piegl & Tiller, 2nd Edition.
-
-    Keyword Arguments:
-        * ``num``: number of knot insertions. *Default: 1*
-        * ``s``: multiplicity of the knot. *Default: computed via :func:`.find_multiplicity`*
-        * ``span``: knot span. *Default: computed via :func:`.find_span_linear`*
-
-    :param degree: degree
-    :type degree: int
-    :param knotvector: knot vector
-    :type knotvector: list, tuple
-    :param ctrlpts: control points
-    :type ctrlpts: list
-    :param u: knot to be inserted
-    :type u: float
-    :return: updated control points
-    :rtype: list
-    """
-    # Get keyword arguments
-    num = kwargs.get('num', 1)  # number of knot insertions
-    s = kwargs.get('s', find_multiplicity(u, knotvector))  # multiplicity
-    k = kwargs.get('span', find_span_linear(degree, knotvector, len(ctrlpts), u))  # knot span
-
-    # Initialize variables
-    np = len(ctrlpts)
-    nq = np + num
-    # Initialize new control points array (control points may be weighted or not)
-    ctrlpts_new = [[] for _ in range(nq)]
-
-    # Initialize a local array of length p + 1
-    temp = [[] for _ in range(degree + 1)]
-*/
-
-        size_t np= ctrlpts.size();
+        size_t np = ctrlpts.size();
         size_t nq = np + num;
         ctrlpts_new.resize(nq);
-        auto temp = std::vector<vec4>(degree + 1);
 
+        // Use std::copy for efficient memory operations
+        std::copy(ctrlpts.begin(), ctrlpts.begin() + (span - degree + 1), ctrlpts_new.begin());
+        std::copy(ctrlpts.begin() + (span - s), ctrlpts.end(), ctrlpts_new.begin() + (span - s + num));
 
-/*
-    # Save unaltered control points
-    for i in range(0, k - degree + 1):
-        ctrlpts_new[i] = ctrlpts[i]
-    for i in range(k - s, np):
-        ctrlpts_new[i + num] = ctrlpts[i]
-
-    # Start filling the temporary local array which will be used to update control points during knot insertion
-    for i in range(0, degree - s + 1):
-        temp[i] = deepcopy(ctrlpts[k - degree + i])
-*/
-    for (size_t i = 0; i < ( span - degree + 1); ++i)
-    {
-        ctrlpts_new[i] = ctrlpts[i];
-        }
-    for (size_t i = span - s; i < np ; ++i)
-        {
-            ctrlpts_new[i + num] = ctrlpts[i];
-        }
-        for (size_t i = 0; i < ( degree - s + 1); ++i)
-        {
-            temp[i] = ctrlpts[span - degree + i];
-        }
-
-/*
-    # Insert knot "num" times
-    for j in range(1, num + 1):
-        L = k - degree + j
-        for i in range(0, degree - j - s + 1):
-            alpha = knot_insertion_alpha(u, tuple(knotvector), k, i, L)
-            if isinstance(temp[i][0], float):
-
-
-                temp[i][:] = [alpha * elem2 + (1.0 - alpha) * elem1 for elem1, elem2 in zip(temp[i], temp[i + 1])]
-            else:
-                for idx in range(len(temp[i])):
-                    temp[i][idx][:] = [alpha * elem2 + (1.0 - alpha) * elem1 for elem1, elem2 in
-                                       zip(temp[i][idx], temp[i + 1][idx])]
-        ctrlpts_new[L] = deepcopy(temp[0])
-        ctrlpts_new[k + num - j - s] = deepcopy(temp[degree - j - s])
-*/
+        // Temporary storage for control points
+        vec4 temp[degree + 1];
+        std::copy(ctrlpts.begin() + (span - degree), ctrlpts.begin() + (span - degree + degree - s + 1), temp);
         size_t L;
-        for (size_t j=1;j<num+1; ++j)
-        {
+        for (size_t j = 1; j <= num; ++j) {
             L = span - degree + j;
-            for (size_t i = 0; i < ( degree - j - s + 1); ++i)
-            {
-                auto alpha = knot_insertion_alpha(u, knots,  span, i, L);
-                // lerp : alpha * v_2 + (1 - alpha) * v_1
-                temp[i]=temp[i+1]*alpha+temp[i] *(1-alpha);
-
-
+            for (size_t i = 0; i <= degree - j - s; ++i) {
+                double alpha = knot_insertion_alpha(u, knots, span, i, L);
+                temp[i] = temp[i + 1] * alpha + temp[i] * (1 - alpha);
             }
             ctrlpts_new[L] = temp[0];
-            ctrlpts_new[span + num - j - s]=temp[degree-j-s];
-
-
-
+            ctrlpts_new[span + num - j - s] = temp[degree - j - s];
         }
 
-        /*
-    # Load remaining control points
-    L = k - degree + num
-    for i in range(L + 1, k - s):
-        ctrlpts_new[i] = deepcopy(temp[i - L])
-    # Return control points after knot insertion
-    return ctrlpts_new
-*/
-    L = span - degree + num;
-
-    for (size_t i = L + 1; i < ( span - s); ++i)
-    {
-        ctrlpts_new[i]=temp[i-L];
-
-    }
-
-
+        L = span - degree + num;
+        for (size_t i = L + 1; i < span - s; ++i) {
+            ctrlpts_new[i] = temp[i - L];
+        }
     }
 
 

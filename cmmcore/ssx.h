@@ -4,7 +4,7 @@
 
 #ifndef SSX_H
 #define SSX_H
-#define CMMCORE_DEBUG
+
 #include "cmmcore/nurbs.h"
 #include "cmmcore/gauss_map.h"
 namespace cmmcore {
@@ -49,14 +49,20 @@ namespace cmmcore {
         auto& bb2=surface2.bbox();
 
         if (!(bb1.intersects(bb2))) {
+#ifdef CMMCORE_DEBUG
             printf("no intersection. depth: %d\n", depth);
+#endif
+
             return;
         }
         auto bb1d=bb1.max-bb1.min;
         auto bb2d=bb2.max-bb2.min;
 
         if (bb1d.x<=tol&&bb1d.y<=tol&&bb1d.z<=tol&&bb2d.x<=tol&&bb2d.y<=tol&&bb2d.z<=tol) {
+#ifdef CMMCORE_DEBUG
             printf("both surfaces are too small. depth: %d\n", depth);
+#endif
+
             intersection.points.push_back(
                {{ 0.5*(surface1._interval[0][1]+ surface1._interval[0][0]),
                     0.5*(surface1._interval[1][1]+ surface1._interval[1][0])},
@@ -75,22 +81,28 @@ namespace cmmcore {
         auto _dims =(aabb1.max-aabb1.min);
 
         if ( (aabb1.volume()<tol|| std::abs(_dims.x)<=tol)||(std::abs(_dims.y)<=tol)||(std::abs(_dims.z)<=tol)){
+#ifdef CMMCORE_DEBUG
             printf("a surface is planar. depth: %d\n", depth);
             printf("[[%f,%f,%f],[%f,%f,%f]],[[%f,%f,%f],[%f,%f,%f]]\n", bb1.min.x, bb1.min.y, bb1.min.z,bb1.max.x, bb1.max.y, bb1.max.z,bb2.min.x, bb2.min.y,bb2.min.z,bb2.max.x,bb2.max.y,bb2.max.z);
+#endif
             return;
         }
         if (SAT3D(surface1.control_points_flat3d(),surface2.control_points_flat3d(),tol))
         {
+#ifdef CMMCORE_DEBUG
             printf("SAT3D. depth: %d\n", depth);
+#endif
+
             return;
         };
 
         if (gaussMapSeparability(gaussMap1,gaussMap2)) {
             auto vv=surface1.control_points_flat3d();
             auto vv1=surface2.control_points_flat3d();
+#ifdef CMMCORE_DEBUG
             printf(("["+format_vec3vec( vv)+"],["+format_vec3vec(  vv1)+"]\n\n").c_str(), depth);
             printf("gauss maps are separable. depth: %d\n", depth);
-
+#endif
             intersection.patches.emplace_back(surface1,surface2);
 
 

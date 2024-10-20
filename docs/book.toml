@@ -1,0 +1,18 @@
+[book]
+authors = ["sth-v"]
+language = "en"
+multilingual = false
+src = "src"
+title = "cmmcore"
+theme = "ayu"
+
+[output.html.playground]
+editable = true
+[output.copy]
+"your_module.wasm" = "./wasm/cmmcore.wasm"
+"your_module.js" = "./wasm/cmmcore.js"
+
+[preprocessor.katex]
+after = ["links"]
+include-src = true
+

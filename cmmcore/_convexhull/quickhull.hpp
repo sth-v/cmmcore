@@ -40,10 +40,10 @@
 #include <cassert>
 #ifdef CYTHON_ABI
 #include "vec.h"
-#include "limits.h"
+#include "cmmcore_limits.h"
 #else
 #include "cmmcore/vec.h"
-#include "cmmcore/limits.h"
+#include "cmmcore/cm_limits.h"
 #endif
 
 namespace cmmcore {

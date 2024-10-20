@@ -36,11 +36,11 @@ SOFTWARE.
 #include <memory>
 #include <cstddef>
 #ifdef CYTHON_ABI
-#include "limits.h"
-#include "hash.h"
+#include "cm_limits.h"
+#include "cm_hash.h"
 #else
-#include "cmmcore/limits.h"
-#include "cmmcore/hash.h"
+#include "cmmcore/cm_limits.h"
+#include "cmmcore/cm_hash.h"
 #endif
 #ifdef __ARM_NEON
 #include <arm_neon.h>

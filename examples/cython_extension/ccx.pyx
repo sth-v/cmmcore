@@ -1,9 +1,11 @@
 cimport cython
+from libcpp.vector cimport vector
+from libcpp.pair cimport pair
+
 from cmmcore.vec cimport vec3,vec4
 from cmmcore.nurbs cimport NURBSCurve
 from cmmcore.ccx cimport ccx
-from libcpp.vector cimport vector
-from libcpp.pair cimport pair
+
 
 def pyccx(double[:,:] pts1,double[:,:] pts2,int degree1=3,int degree2=3, double tol=1e-5):
     cdef vector[vec4] ptsc1=vector[vec4](pts1.shape[0])

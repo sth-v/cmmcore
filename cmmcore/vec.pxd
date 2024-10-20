@@ -6,7 +6,46 @@ from libcpp.string cimport string
 from libcpp cimport bool
 
 cdef extern from "vec.h"  namespace "cmmcore" nogil:
+    cdef cppclass vec2:
+        double x, y
+        vec2()
+        vec2(double value)
+        vec2(double v1, double v2)
+        explicit vec2(double[2]& arr)
+        vec2(const vec2& from, const vec2& to)
+        size_t size() const
+        void set(double v1)
+        void set(double v1, double v2)
+        void set(const vec2 v1)
+        void set(const double[2]& arr)
+        bool operator==(const vec2& other) const
+        vec2 operator-() const
+        vec2 operator-(const vec2& other) const
+        vec2 operator*(const vec2& other) const
+        vec2 operator*(double val) const
+        void operator*=(double val)
+        void operator+=(const vec2& other)
+        void operator/=(double val)
+        void operator-=(const vec2& other)
+        double& operator[](size_t index)
+        double operator[](size_t index) const
+        double dot(const vec2& other) const
+        double sqLength() const
+        double length() const
+        vec2 project(const vec2& other) const
+        double projection(const vec2& other) const
+        void unitize()
+        vec2 unit() const
+        bool collinear(const vec2& other) const
 
+    double cross(const vec2& a, const vec2& b)
+    double dot(const vec2& a, const vec2& b)
+
+    cdef cppclass Vec2Hash:
+        size_t operator()(const vec2& v) const
+
+    cdef cppclass Vec2Equal:
+        bool operator()(const vec2& a, const vec2& b) const
 
     cdef cppclass vec3:
         double x

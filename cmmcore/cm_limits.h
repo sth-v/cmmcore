@@ -4,6 +4,7 @@
 
 #ifndef CMMCORE_LIMITS_H
 #define CMMCORE_LIMITS_H
+#include <climits>
 #include <limits>
 #define CMMCORE_NUMERIC_EPSILON_DOUBLE std::numeric_limits<double>::epsilon()
 #define CMMCORE_DECIMALS std::numeric_limits<double>::digits10

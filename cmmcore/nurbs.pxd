@@ -7,8 +7,6 @@ from libcpp cimport bool
 from cmmcore.vec cimport vec3,vec4
 from cmmcore.bvh cimport AABB
 
-
-
 cdef extern from "nurbs.h" namespace "cmmcore" nogil:
     cdef cppclass NURBSCurve:
         NURBSCurve()
@@ -20,9 +18,7 @@ cdef extern from "nurbs.h" namespace "cmmcore" nogil:
         NURBSCurve(const vector[vec4] &control_points, int degree, bool periodic)
         NURBSCurve(const vector[vec4] &control_points, int degree, const vector[double] &knots, bool periodic)
         NURBSCurve(const NURBSCurve &other)
-
         NURBSCurve &operator=(const NURBSCurve &other)
-
         bool is_periodic() const
         void update_interval()
         void knots_update_hook()
@@ -38,20 +34,27 @@ cdef extern from "nurbs.h" namespace "cmmcore" nogil:
         int get_degree()
         void set_degree(int val)
         const vector[double] get_knots()
-        void set_knots(vector[double] &knots)
+        void set_knots(vector[double] &knts)
         double[2] interval()
         AABB &aabb()
         void rebuildAABB()
 
     cdef cppclass NURBSSurface:
-        NURBSSurface(const vector[vector[vec4]] &control_points, const int[2] &degree, const vector[double] &knots_u , const vector[double] &knots_v )
-
+        NURBSSurface()
+        NURBSSurface(const vector[vector[vec4]] &control_points, const int[2] &degree, const vector[double] &knots_u, const vector[double] &knots_v)
         void generate_knots_u()
         void generate_knots_v()
-        void evaluate(double u, double v, vec4 &result) const
+        void evaluate(double u, double v, vec3 &result) const noexcept
         void insert_knot_u(double t, int count)
         void insert_knot_v(double t, int count)
         pair[NURBSSurface, NURBSSurface] split_surface_u(double param, double tol) const
         pair[NURBSSurface, NURBSSurface] split_surface_v(double param, double tol) const
 
-        void update_interval() noexcept
+    void flipControlPointsU(const vector[vector[vec4]] &cpts, vector[vector[vec4]] &result)
+    void surfaceCrossProduct(const NURBSSurface &a, const NURBSSurface &b, NURBSSurface &result)
+    void cross(const NURBSSurface &a, const NURBSSurface &b, NURBSSurface &result)
+    NURBSSurface cross(const NURBSSurface &a, const NURBSSurface &b)
+    bool contains(unordered_set[double] &s, double val)
+    void uniqueKnots(vector[double] &knots, vector[double] &uniqueKnots)
+    void decomposeDirection(NURBSSurface &surf, vector[NURBSSurface] &bezierSurfaces, int direction)
+    void decompose(NURBSSurface &surf, vector[NURBSSurface] &bezierSurfaces)

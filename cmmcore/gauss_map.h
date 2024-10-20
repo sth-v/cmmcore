@@ -22,7 +22,7 @@
 
 namespace cmmcore
 {
-  void inverseControlPoints(  const std::vector<vec3>& pts, std::vector<vec3>&pts_inv)
+  inline void inverseControlPoints(  const std::vector<vec3>& pts, std::vector<vec3>&pts_inv)
   {
     pts_inv.resize(pts.size());
 
@@ -120,7 +120,7 @@ namespace cmmcore
 
     }
   };
-  NURBSSurface gaussMap(const NURBSSurface& srf)
+  inline NURBSSurface gaussMap(const NURBSSurface& srf)
   {
     auto mono = Monomial2D(srf);
     Monomial2D normal;
@@ -129,7 +129,7 @@ namespace cmmcore
     normal.to_bezier(surf);
     return surf;
   }
-  bool gaussMapSeparability(const NURBSSurface& srf1,const NURBSSurface& srf2)
+  inline bool gaussMapSeparability(const NURBSSurface& srf1,const NURBSSurface& srf2)
   {
     std::vector<vec3>pts1=srf1.control_points_flat3d();;
     std::vector<vec3>pts2=srf2.control_points_flat3d();;

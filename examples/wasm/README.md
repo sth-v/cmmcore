@@ -4,9 +4,9 @@
 
 To build and run the wasm module, follow these steps:
 1. Make sure emscripten is installed and available in your environment
-2. Go to the ./wasm directory
+2. Go to the ./examples/wasm directory (relative to the root of the repository)
     ```bash
-    cd wasm
+    cd examples/wasm
     ```
 3. Compile cmmcore.wasm and cmmcore.js:
     ```bash
