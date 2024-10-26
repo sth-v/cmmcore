@@ -380,7 +380,14 @@ namespace cmmcore {
         std::vector<vec4> get_control_points() const {
             return control_points;
         }
-
+        std::vector<vec3>& get_control_points3d(std::vector<vec3>& result) const {
+             result.resize(control_points.size());
+            for (size_t i = 0; i < control_points.size(); ++i)
+            {
+                result[i].set(control_points[i].to_vec3());
+            }
+            return result;
+        }
         void set_control_points(std::vector<vec4> &cpts) {
             bool change_size = (cpts.size() != control_points.size());
             control_points = std::move(cpts);
@@ -507,6 +514,37 @@ namespace cmmcore {
             surface_point(_size[0] - 1, _degree[0], _knots_u, _size[1] - 1, _degree[1], _knots_v, _control_points, u, v,
                           0, 0, result);
         }
+        void derivative_u(double u, double v, vec3 &result) const
+        {
+            vec3 temp1,temp2;
+            evaluate(u-1e-5,v,temp1);
+            evaluate(u+1e-5,v,temp2);
+            temp2-=temp1;
+            result.set(temp2/(2*1e-5
+                ));
+
+
+        }
+        void derivative_v(double u, double v, vec3 &result) const
+        {
+            vec3 temp1,temp2;
+            evaluate(u,v-1e-5,temp1);
+            evaluate(u,v+1e-5,temp2);
+            temp2-=temp1;
+            result.set(temp2/(2*1e-5
+                ));
+
+
+        }
+        void normal(double u,double v, vec3 &result) const
+        {
+           vec3 temp1,temp2;
+            derivative_u(u,v,temp1);
+            derivative_v(u,v,temp2);
+            temp1.cross(temp2,result);
+            result.normalize();
+        }
+
         void insert_knot(const double t, const int direction, const int count ) {
 
 
@@ -570,7 +608,7 @@ namespace cmmcore {
             update_interval();
         }
 
-        std::pair<NURBSSurface, NURBSSurface> split_surface_u(double param, double tol = 1e-7) {
+        std::pair<NURBSSurface, NURBSSurface> split_surface_u(double param, double tol = 1e-7) const {
             if (param <= _interval[0][0] || param >= _interval[0][1] || std::fabs(param - _interval[0][0]) <= tol ||
                 std::fabs(param - _interval[0][1]) <= tol) {
                 throw std::invalid_argument("Cannot split from the domain edge");
@@ -602,7 +640,7 @@ namespace cmmcore {
             return {surf1, surf2};
         }
 
-        std::pair<NURBSSurface, NURBSSurface> split_surface_v(double param, double tol = 1e-7) {
+        std::pair<NURBSSurface, NURBSSurface> split_surface_v(double param, double tol = 1e-7) const {
             if (param <= _interval[1][0] || param >= _interval[1][1] || std::fabs(param - _interval[1][0]) <= tol ||
                 std::fabs(param - _interval[1][1]) <= tol) {
                 throw std::invalid_argument("Cannot split from the domain edge");
@@ -690,7 +728,7 @@ namespace cmmcore {
             NURBSSurface &s22,
             double umid,
             double vmid
-            ) {
+            ) const {
             //auto umid = 0.5 * (_interval[0][1] + _interval[0][0]);
             //auto vmid = 0.5 * (_interval[1][1] + _interval[1][0]);
             auto [s1,s2] = split_surface_u(umid);
@@ -707,7 +745,7 @@ namespace cmmcore {
             NURBSSurface &s21,
             NURBSSurface &s22
 
-            ) {
+            )const {
             auto umid = 0.5 * (_interval[0][1] + _interval[0][0]);
             auto vmid = 0.5 * (_interval[1][1] + _interval[1][0]);
             subdivide(s11,s12,s21,s22,umid,vmid);
@@ -737,6 +775,7 @@ namespace cmmcore {
         AABB _bbox{
             {0., 0., 0.}, {0., 0., 0.}
         };
+
 
         void update_interval_u() {
             _interval[0][0] = *(_knots_u.begin());

@@ -200,10 +200,12 @@ namespace cmmcore {
       y*=val;
 
     }
+    friend std::ostream&  operator<<(std::ostream& os, const vec2& obj);
+
   };
 
 
-;
+
 
 inline double cross(const vec2& a, const vec2& b) {
     return a.x * b.y - a.y * b.x;
@@ -424,6 +426,7 @@ struct vec3 {
   bool collinear(const vec3& other) const {
     return CMMCORE_VEC_COLLINEAR(*this,other);
   }
+  friend std::ostream& operator<<(std::ostream& os, const vec3& obj);
 
 };
 
@@ -929,6 +932,7 @@ struct vec4 {
   bool collinear(const vec4& other) const {
     return CMMCORE_VEC_COLLINEAR(*this,other);
   }
+  friend std::ostream& operator<<(std::ostream& os, const vec4& obj);
 };
   inline void cross(const vec3& a, const vec3& b, vec4& result) {
     result.x=a.y*b.z - a.z*b.y;
@@ -936,5 +940,23 @@ struct vec4 {
     result.z=a.x*b.y - a.y*b.x;
     result.w=1.0;
   }
+
+
+
+  std::ostream& operator<<(std::ostream& os, const vec2& obj) {
+    os << "[" << obj.x << "," << obj.y << "]";
+    return os;
+  }
+  std::ostream& operator<<(std::ostream& os, const vec3& obj) {
+    os << "[" << obj.x << "," << obj.y  << obj.z <<"]";
+    return os;
+  }
+
+
+  std::ostream& operator<<(std::ostream& os, const vec4& obj) {
+    os << "[" << obj.x << "," << obj.y  << obj.z << obj.w << "]";
+    return os;
+  }
+
 }
 #endif //VEC_H
