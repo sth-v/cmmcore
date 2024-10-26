@@ -135,3 +135,20 @@ spherical_separability_test = executable('spherical_separability_test',
 )
 test('spherical_separability_test',
      spherical_separability_test)
+# memview_test
+memview_test = executable('memview_test',
+                          'memview_test.cpp',
+                          include_directories : my_inc,
+                          install : false
+)
+test('memview_test',
+     memview_test)
+# newthon_test
+newthon_test = executable('newthon_test',
+               'newthon_test.cpp',
+               include_directories : my_inc,
+               install : false
+)
+test('newthon_test',
+     newthon_test)
+
