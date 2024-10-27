@@ -19,7 +19,7 @@
 #include "cmmcore/binom.h"
 #endif
 
-
+#include <cstring>
 
 namespace cmmcore {
     /**

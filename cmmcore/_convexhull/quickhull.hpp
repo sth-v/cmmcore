@@ -781,7 +781,7 @@ namespace cmmcore {
 
         point_list get_affine_basis()
         {
-            assert(facets_.empty());
+            //assert(facets_.empty());
 
             point_list basis_;
             if (outside_.empty()) {
@@ -812,7 +812,7 @@ namespace cmmcore {
             static_assert(std::is_constructible<point_iterator, typename iterator_traits::value_type>::value);
 
             size_type num_points = std::distance(first, last);
-            assert(facets_.empty());
+            //assert(facets_.empty());
 
             // Compute inner_point_
             {

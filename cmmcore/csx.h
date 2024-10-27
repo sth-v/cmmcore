@@ -12,169 +12,207 @@
 #include <cmath>
 #include <iostream>
 #include <algorithm>
-
+#include <cstring>
 #include "separability.h"
 #include "cmmcore/nurbs.h"
 #include "cmmcore/vec.h"
 #include "cmmcore/newthon.h"
+
+#include <vector>
+#include <array>
+#include <string>
+#include <tuple>
+#include <optional>
+#include <cmath>
+#include <iostream>
+#include <algorithm>
+#include "cmmcore/nurbs_utils.h"
+#include "cmmcore/vec.h"
+
 namespace cmmcore {
 
-class NURBSCurveSurfaceIntersector {
-public:
-    NURBSCurveSurfaceIntersector(NURBSCurve& curve, NURBSSurface& surface, double tolerance = 1e-3, double ptol = 1e-7)
-        : curve(curve), surface(surface), tolerance(tolerance), ptol(ptol) {}
-
-    std::vector<std::tuple<std::string, vec3, std::array<double, 3>>> intersect() {
-        intersections.clear();
-        _curve_surface_intersect(curve, surface);
-        return intersections;
-    }
-
-private:
-    NURBSCurve& curve;
-    NURBSSurface& surface;
-    double tolerance;
-    double ptol;
-    std::vector<std::tuple<std::string, vec3, std::array<double, 3>>> intersections;
-
-    int _find_new_intersection(const NURBSCurve& curve, const NURBSSurface& surface,vec3& pt, std::vector<double>&tuv) {
-        // Implement the logic to find a new intersection
-
-        auto function = [&curve,&surface](const std::vector<double>& v) {
-            vec3 temp1,temp2;
-            curve.evaluate(v[0],temp1);
-            surface.evaluate(v[1],v[2],temp2);
 
 
-            return (temp1-temp2).sqLength();
-        };
-        vec3 tmp;
-        tuv.resize(3);
-        tuv[0]=(curve._interval[1]+curve._interval[0])*0.5;
-        tuv[1]=(surface._interval[0][0]+surface._interval[0][1])*0.5;
-        tuv[2]= (surface._interval[1][0]+surface._interval[1][1])*0.5;
 
+    class NURBSCurveSurfaceIntersector {
+    public:
+        NURBSCurveSurfaceIntersector(const NURBSCurve &curve, const NURBSSurface &surface, double tolerance = 1e-3, double ptol = 1e-7)
+            : curve(curve), surface(surface), tolerance(tolerance), ptol(ptol) {}
 
-        auto res=newtonsMethod(function, tuv, tolerance);
-        if (res==0)
-        {
-            surface.evaluate(tuv[1],tuv[2],pt);
+         std::vector<std::tuple<std::string, vec3, std::vector<double>>> intersect() {
+            intersections.clear();
+            _curve_surface_intersect(curve, surface);
+            return intersections;
         }
 
+    private:
+        const NURBSCurve &curve;
+        const NURBSSurface &surface;
+        double tolerance;
+        double ptol;
+        std::vector<std::tuple<std::string, vec3, std::vector<double>>> intersections;
 
-        return res;
-
-
-
-    }
-
-    void _curve_surface_intersect(const NURBSCurve& curve, const NURBSSurface& surface) {
-        if (_no_new_intersections(curve, surface)) return;
-        std::pair<vec3, std::vector<double>> new_point;
-        int res=_find_new_intersection(curve, surface,new_point.first,new_point.second);
-        auto [u0, u1] = surface._interval[0];
-        auto [v0, v1] = surface._interval[1];
-
-        if (!(res==0)) {
-            auto [t0, t1] = curve._interval;
-            auto [curve1, curve2] = curve.split((t0 + t1) * 0.5);
-            std::array<NURBSSurface,4> surfaces;
-            surface.subdivide(surfaces[0],surfaces[1],surfaces[2],surfaces[3]);
-
-         for (auto& s : {surfaces[0],surfaces[1], surfaces[2], surfaces[3]}) {
-                for (auto& c : {curve1, curve2}) {
-                    _curve_surface_intersect(c, s);
-                }
+        bool _is_valid_point(vec3 point, const NURBSCurve& curve, const NURBSSurface& surface,
+                              const std::vector<double>& params) {
+            vec3 curve_pt;
+            try {
+                curve.evaluate(params[0], curve_pt);
+                vec3 surface_pt;
+                surface.evaluate(params[1], params[2], surface_pt);
+                return (curve_pt - surface_pt).length() <= tolerance;
+            } catch (const std::exception&) {
+                return false;
             }
-        } else {
-            auto [point, params] = *new_point;
-            auto [t, u, v] = params;
+            return true;
+        }
 
-            const std::string intersection_type = _is_degenerate(params, curve, surface) ? "degenerate" : "transversal";
-            intersections.emplace_back(intersection_type, point, params);
-
-            if (std::abs(u - u0) < ptol || std::abs(u - u1) < ptol || std::abs(v - v0) < ptol || std::abs(v - v1) < ptol)
+        void _curve_surface_intersect(const NURBSCurve &curve, const NURBSSurface &surface) {
+            // Check if we're already at a too small subdivision
+            if (curve._interval[1] - curve._interval[0] < ptol ||
+                surface._interval[0][1] - surface._interval[0][0] < ptol ||
+                surface._interval[1][1] - surface._interval[1][0] < ptol) {
                 return;
-
-
-            auto [curve1, curve2] = curve.split(t);
-            std::array<NURBSSurface,4> surfaces;
-            surface.subdivide(surfaces[0],surfaces[1],surfaces[2],surfaces[3],u, v);
-            for (size_t i = 0; i < surfaces.size(); i++)
-            {
-
             }
 
-            for (auto& s : {surfaces[0],surfaces[1], surfaces[2], surfaces[3]}) {
-                std::vector<vec3> scpts(s.control_points.size()-1);
+            if (_no_new_intersections(curve, surface)) {
+                return;
+            }
 
-                auto scpts2=s.control_points_flat3d();
-                size_t jc=0;
-                for (size_t i = 0; i < s.control_points.size(); i++)
-                {
-                    scpts2[i].sub(point, scpts[jc]);
-                    if (!(scpts[jc].x<=std::numeric_limits<double>::epsilon()
-                    &&scpts[jc].y<=std::numeric_limits<double>::epsilon()
-                    &&scpts[jc].z<=std::numeric_limits<double>::epsilon()))
-                    {
-                        jc++;
-                    }
+            auto new_point = _find_new_intersection(curve, surface);
+            auto [u0, u1] = surface._interval[0];
+            auto [v0, v1] = surface._interval[1];
+            double u = (u0 + u1) * 0.5;
+            double v = (v0 + v1) * 0.5;
 
+            if (std::abs(u - u0) < ptol || std::abs(u - u1) < ptol || 
+                std::abs(v - v0) < ptol || std::abs(v - v1) < ptol) {
+                return;
+            }
 
+            if (!new_point.has_value()) {
+                auto [curve1, curve2] = curve.split(0.5 * (curve._interval[0] + curve._interval[1]), false); // normalize_knots=false
+                auto [surface1, surface2, surface3, surface4] = surface.subdivide(u, v); // normalize_knots=false
 
+                _curve_surface_intersect(curve1, surface1);
+                _curve_surface_intersect(curve1, surface2);
+                _curve_surface_intersect(curve1, surface3);
+                _curve_surface_intersect(curve1, surface4);
+                _curve_surface_intersect(curve2, surface1);
+                _curve_surface_intersect(curve2, surface2);
+                _curve_surface_intersect(curve2, surface3);
+                _curve_surface_intersect(curve2, surface4);
+            } else {
+                auto [point, params] = new_point.value();
+                double t = params[0], u = params[1], v = params[2];
 
-
+                if (std::abs(u - u0) < ptol || std::abs(u - u1) < ptol || 
+                    std::abs(v - v0) < ptol || std::abs(v - v1) < ptol) {
+                    return;
                 }
-                for (auto& c : {curve1, curve2}) {
-                    std::vector<vec3> ccpts(c.control_points.size()-1);
 
-                    std::vector<vec3> ccpts2;
-                    c.get_control_points3d(ccpts2);
-                    size_t ic = 0;
+                if (_is_degenerate(params, curve, surface)) {
+                    intersections.emplace_back("degenerate", point, params);
+                } else {
+                    intersections.emplace_back("transversal", point, params);
+                }
 
-                    for (size_t i = 0; i < c.control_points.size(); i++)
+                // Add spherical separability check
+
+
+                // Split curve and surface at intersection point
+                auto [curve1, curve2] = curve.split(t, false); // normalize_knots=false
+                auto surfaces = surface.subdivide(u, v); // normalize_knots=false
+
+                // Recursively check each combination
+                for (const auto& s : surfaces) {
+                    for (const auto& curve : {curve1, curve2})
                     {
-                       ccpts2[i].sub(point, ccpts[ic]);
-                        if (!(ccpts[ic].x<=std::numeric_limits<double>::epsilon()
-                        &&ccpts[ic].y<=std::numeric_limits<double>::epsilon()
-                        &&ccpts[ic].z<=std::numeric_limits<double>::epsilon()))
-                        {
-                            ic++;
+                        std::vector<vec3> curve_points = curve.get_control_points3d();
+                        std::vector<vec3> surface_points = surface.control_points_flat3d();
+
+                        if ( SphericalCentralProjectionTest2(point,curve_points, surface_points)) {
+                            continue;
+
+                        }else{
+                            _curve_surface_intersect(curve, s);
                         }
-
-
                     }
-
-                    if (!SphericalSeparabilityTest(ccpts2, scpts2))
-                    {
-                        _curve_surface_intersect(c, s);
-                    };
 
 
                 }
             }
         }
-    }
 
-    bool _no_new_intersections(const NURBSCurve& curve, const NURBSSurface& surface) const {
-        std::vector<vec3> cpts;
-        return SAT3D(curve.get_control_points3d(cpts), surface.control_points_flat3d(), tolerance);
-    }
+        bool _no_new_intersections(const NURBSCurve &curve, const NURBSSurface &surface) {
+            // Implement separability test
+            auto e1=curve.get_control_points3d();
+              auto e12=surface.control_points_flat3d();
+            if (AABBTest(e1,e12))
+            {
+                return true;
+            } else
+            {
+                std::vector<vec3> simplex;
+                vec3 cpt;
+                GJK(e1,e12,simplex,cpt,1e-5);
 
-    bool _is_degenerate(const std::array<double, 3>& params, const NURBSCurve& curve, const NURBSSurface& surface) const {
-        double t = params[0];
-        double u = params[1];
-        double v = params[2];
+                return cpt.length()>tolerance;
+            }
 
-        vec3 curve_tangent;
-        curve.derivative(t, curve_tangent);
+        }
 
-        vec3 surface_normal;
-        surface.normal(u, v, surface_normal);
+        std::optional<std::pair<vec3, std::vector<double>>> _find_new_intersection(const NURBSCurve &curve, const NURBSSurface &surface) {
+            auto equation = [&](const std::vector<double> &params) -> double {
+                // First validate parameters are in range
+                if (!_is_valid_parameter(params, curve._interval, surface._interval)) {
+                    return std::numeric_limits<double>::infinity();
+                }
+                
+                try {
+                    vec3 curve_pt, surface_pt;
+                    curve.evaluate(params[0], curve_pt);
+                    surface.evaluate(params[1], params[2], surface_pt);
+                    auto d = (curve_pt - surface_pt);
+                    return d.sqLength();
+                } catch (const std::exception&) {
+                    return std::numeric_limits<double>::infinity();
+                }
+            };
 
-        return std::abs(curve_tangent.dot( surface_normal)) < tolerance;
-    }
-};
+            std::vector<double> initial_guess = {(curve._interval[0] + curve._interval[1]) * 0.5,
+                                                   (surface._interval[0][0] + surface._interval[0][1]) * 0.5,
+                                                   (surface._interval[1][0] + surface._interval[1][1]) * 0.5};
+
+            auto result = newtonsMethod(equation, initial_guess);
+            if (!result.empty() && _is_valid_parameter(result, curve._interval, surface._interval)) {
+                vec3 curve_pt, surface_pt;
+                curve.evaluate(result[0], curve_pt);
+                surface.evaluate(result[1], result[2], surface_pt);
+                if ((curve_pt - surface_pt).length() <= tolerance) {
+                    return std::make_pair(curve_pt, result);
+                }
+
+            }
+            return std::nullopt;
+        }
+
+        bool _is_valid_parameter(const std::vector<double> &params, const std::array<double, 2> &curve_interval,
+                                 const std::array<std::array<double, 2>, 2> &surface_interval) {
+            return (params[0] >= curve_interval[0] && params[0] <= curve_interval[1]) &&
+                   (params[1] >= surface_interval[0][0] && params[1] <= surface_interval[0][1]) &&
+                   (params[2] >= surface_interval[1][0] && params[2] <= surface_interval[1][1]);
+        }
+
+        bool _is_degenerate(const std::vector<double> &params, const NURBSCurve &curve, const NURBSSurface &surface) {
+            vec3 curve_tangent;
+            curve.derivative(params[0], curve_tangent);
+            vec3 surface_normal;
+            surface.normal(params[1], params[2], surface_normal);
+            return std::abs(curve_tangent.dot(surface_normal)) < tolerance;
+        }
+    };
+
+
 
 } // namespace cmmcore
 #endif //CSX_H

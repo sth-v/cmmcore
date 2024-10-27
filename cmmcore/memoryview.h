@@ -15,6 +15,7 @@
 #include <typeinfo>
 #include <cstring> // For memcpy
 #include <cstdio>  // For FILE*
+#include <cstring>
 namespace cmmcore
 {
 
@@ -75,7 +76,10 @@ namespace cmmcore
             : data_(data), shape_(shape), strides_(strides), offset_(offset)
         {
         }
-
+        T* data()
+        {
+            return data_;
+        }
         // Get the shape of the MemoryView
         std::vector<size_t> shape() const
         {
@@ -87,7 +91,27 @@ namespace cmmcore
         {
             return strides_;
         }
+        size_t size() const
+        {
+            size_t size=1;
+            for (size_t i = 0 ; i<shape_.size();i++)
+            {
+                i*=shape_[i];
+            }
+            return size;
+        }
+        MemoryView<T>* copy() const
+        {
+            size_t _size=size();
+            T* ptr = (T*)malloc(_size*sizeof(T));
+            memcpy(ptr,data_,_size*sizeof(T));
+            auto* mv=new MemoryView<T>(ptr,shape_, strides_, offset_);
+            mv->is_managed_=true;
+            return mv;
 
+
+
+        }
         // Slice method
         MemoryView<T> slice(const std::vector<Slice>& slices) const
         {
@@ -449,12 +473,26 @@ namespace cmmcore
             // Deserialize
             return deserialize(buffer);
         }
+        ~MemoryView()
+        {
+            if (is_managed_)
+            {
+                if (data_!=nullptr)
+                {
+                    free(data_);
+                }
+
+            }
+        }
 
     private:
+        bool is_managed_=false;
         T* data_;
         std::vector<size_t> shape_;
         std::vector<size_t> strides_;
         size_t offset_;
+
+
 
         // Compute strides based on the current shape
         void compute_strides()

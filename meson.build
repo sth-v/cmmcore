@@ -24,6 +24,9 @@ if host_machine.system() != 'emscripten'
     # Detect the host operating system
     if host_machine.system() == 'darwin'
         simd_args = ['-mcpu=apple-m1','-march=armv8-a+simd']
+    elif host_machine.cpu() == 'aarch64'
+
+        simd_args = ['-mcpu=native','-march=armv8-a+simd']
 
 
 

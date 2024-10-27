@@ -2,19 +2,19 @@
 // Created by Andrew Astakhov on 26.10.24.
 //
 
-#ifndef CMMCORE_NEWTHON
-#define CMMCORE_NEWTHON
+#ifndef CMMCORE_NEWTHON_H
+#define CMMCORE_NEWTHON_H
 #include <numeric>
 #include <iostream>
 #include <vector>
 #include <cmath>
 #include <functional>
 #include <limits>
-
+#include <cstring>
 namespace cmmcore {
     // Utility function to compute the gradient of a scalar function
-    inline std::vector<double> computeGradient(const std::function<double(const std::vector<double>&)>& f,
-                                               const std::vector<double>& point, double h = 1e-5) {
+    std::vector<double> computeGradient(const std::function<double(const std::vector<double>&)>& f,
+                                        const std::vector<double>& point, double h = 1e-5) {
         size_t n = point.size();
         std::vector<double> grad(n);
         for (size_t i = 0; i < n; ++i) {
@@ -27,8 +27,8 @@ namespace cmmcore {
         return grad;
     }
     // Utility function to compute the Hessian matrix of a scalar function
-    inline std::vector<std::vector<double>> computeHessian(const std::function<double(const std::vector<double>&)>& f,
-                                                           const std::vector<double>& point, double h = 1e-5) {
+    std::vector<std::vector<double>> computeHessian(const std::function<double(const std::vector<double>&)>& f,
+                                                    const std::vector<double>& point, double h = 1e-5) {
         size_t n = point.size();
         std::vector<std::vector<double>> H(n, std::vector<double>(n, 0.0));
         double fp = f(point);
@@ -60,9 +60,9 @@ namespace cmmcore {
         return H;
     }
     // Newton's method implementation to find the root of a function
-    inline int newtonsMethod(const std::function<double(const std::vector<double>&)>& f,
-                             std::vector<double> point,
-                             double tol = 1e-5, int maxIter = 100) {
+    std::vector<double> newtonsMethod(const std::function<double(const std::vector<double>&)>& f,
+                                      std::vector<double> point,
+                                      double tol = 1e-5, int maxIter = 15) {
         const size_t n = point.size();
         for (int iter = 0; iter < maxIter; ++iter) {
             std::vector<double> grad = computeGradient(f, point);
@@ -70,9 +70,9 @@ namespace cmmcore {
             double det = H[0][0] * H[1][1] - H[0][1] * H[1][0];
             if (std::abs(det) < std::numeric_limits<double>::epsilon()) {
                 std::cerr << "Warning: Hessian is singular at iteration " << iter << "." << std::endl;
-                return 1; // Return point as the best guess
+                return point; // Return point as the best guess
             }
-            std::vector<std::vector<double>> H_inv(2, std::vector<double>(2));
+            std::vector<std::vector<double>> H_inv(n, std::vector<double>(n));
             H_inv[0][0] = H[1][1] / det;
             H_inv[0][1] = -H[0][1] / det;
             H_inv[1][0] = -H[1][0] / det;
@@ -88,13 +88,13 @@ namespace cmmcore {
             }
             double norm = std::sqrt(std::inner_product(step.begin(), step.end(), step.begin(), 0.0));
             if (norm < tol) {
-                std::cout << "Converged in " << iter << " iterations." << std::endl;
-                return 0;
+                //std::cout << "Converged in " << iter << " iterations." << std::endl;
+                return point;
             }
         }
-        std::cerr << "Iteration limit reached without convergence." << std::endl;
-        return 1;
+        //std::cerr << "Iteration limit reached without convergence." << std::endl;
+        return point;
     }
 }
 
-#endif //CMMCORE_NEWTHON
+#endif //CMMCORE_NEWTHON_H

@@ -11,6 +11,7 @@
 #include "cmmcore/vec.h"
 
 #endif
+#include <cstring>
 namespace cmmcore {
 inline double segmentsDistance(const vec3& p1,const vec3& p2,const vec3& q1,const vec3& q2,
                       double& t,double& u, vec3& cpt1, vec3& cpt2 ){

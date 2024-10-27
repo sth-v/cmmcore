@@ -394,7 +394,64 @@ inline bool SphericalSeparabilityTest( std::vector<vec3>& pts1, std::vector<vec3
      * сферу.
      * */
 
+  inline bool SphericalCentralProjectionTest2(vec3 origin, std::vector<vec3>& pts1, std::vector<vec3>& pts2) {
 
+    std::vector<vec2> poly1(pts1.size());
+    std::vector<vec2> poly2(pts2.size());
+
+
+    for (size_t i=0;i<pts1.size();i++)
+    {
+
+      centerProjectionToXY(origin, pts1[i].unit(),poly1[i]);
+    }
+    for (size_t j=0;j<pts2.size();j++)
+    {
+      centerProjectionToXY(origin, pts2[j].unit(),poly2[j]);
+
+    }
+
+#ifdef CMMCORE_DEBUG
+    printf("\n\n[");
+    for (auto& p:poly1)
+    {
+      printf("[%f,%f],", p.x,p.y);
+    }
+    printf("],[");
+    for (auto& p:poly2)
+    {
+      printf("[%f,%f],", p.x,p.y);
+    }
+    printf("]\n");
+#endif
+
+    auto h1=convex_hull2d(poly1);
+    auto h2=convex_hull2d(poly2);
+    if (h1.empty())
+    {
+      h1.push_back(poly1[0]);
+    }
+    if (h2.empty())
+    {
+      h2.push_back(poly2[0]);
+    }
+#ifdef CMMCORE_DEBUG
+    printf("[");
+    for (auto& p:h1)
+    {
+      printf("[%f,%f],", p.x,p.y);
+    }
+    printf("],[");
+    for (auto& p:h2)
+    {
+      printf("[%f,%f],", p.x,p.y);
+    }
+    printf("]\n");
+#endif
+
+    return SAT2D(h1,h2);
+
+  }
   }
 
 #endif //SEPARABILITY_H

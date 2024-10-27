@@ -388,6 +388,15 @@ namespace cmmcore {
             }
             return result;
         }
+        std::vector<vec3> get_control_points3d() const {
+            std::vector<vec3> result;
+            result.resize(control_points.size());
+            for (size_t i = 0; i < control_points.size(); ++i)
+            {
+                result[i].set(control_points[i].to_vec3());
+            }
+            return result;
+        }
         void set_control_points(std::vector<vec4> &cpts) {
             bool change_size = (cpts.size() != control_points.size());
             control_points = std::move(cpts);
@@ -720,7 +729,42 @@ namespace cmmcore {
             return _control_points;
         }
 
+           std::array<NURBSSurface,4>  subdivide(
 
+             ) const {
+
+            double umid=0.5*(_interval[0][1]+_interval[0][0]);
+            double vmid=0.5*(_interval[1][1]+_interval[1][0]);
+            std::array<NURBSSurface,4> surfs;
+            //auto umid = 0.5 * (_interval[0][1] + _interval[0][0]);
+            //auto vmid = 0.5 * (_interval[1][1] + _interval[1][0]);
+            auto [s1,s2] = split_surface_u(umid);
+            auto [_s11,_s12] = s1.split_surface_v(vmid);
+            auto [_s21,_s22] = s2.split_surface_v(vmid);
+            surfs[0] = std::move(_s11);
+            surfs[1]  = std::move(_s12);
+            surfs[2]  = std::move(_s21);
+            surfs[3]  = std::move(_s22);
+            return surfs;
+        }
+        std::array<NURBSSurface,4>  subdivide(double umid, double vmid
+
+  ) const {
+
+
+
+            std::array<NURBSSurface,4> surfs;
+            //auto umid = 0.5 * (_interval[0][1] + _interval[0][0]);
+            //auto vmid = 0.5 * (_interval[1][1] + _interval[1][0]);
+            auto [s1,s2] = split_surface_u(umid);
+            auto [_s11,_s12] = s1.split_surface_v(vmid);
+            auto [_s21,_s22] = s2.split_surface_v(vmid);
+            surfs[0] = std::move(_s11);
+            surfs[1]  = std::move(_s12);
+            surfs[2]  = std::move(_s21);
+            surfs[3]  = std::move(_s22);
+            return surfs;
+        }
         void subdivide(
             NURBSSurface &s11,
             NURBSSurface &s12,
