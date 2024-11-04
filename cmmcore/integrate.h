@@ -21,7 +21,7 @@ constexpr double TOLERANCE = 1e-6;  // Desired tolerance for error estimation
 // Function prototype for the integration procedure
 
 // Internal recursive function implementing adaptive Simpson's method
-constexpr void adaptiveSimpson(const std::function<double(double)>& fun, const double a, const double b,
+inline void adaptiveSimpson(const std::function<double(double)>& fun, const double a, const double b,
                                 const double fa, const double fb,const  double fm,const  double S,
                                 const double tol, double& result, double& error, const size_t depth, const size_t max_depth) {
         const double m = 0.5 * (a + b);
@@ -48,7 +48,7 @@ constexpr void adaptiveSimpson(const std::function<double(double)>& fun, const d
         }
     }
 
-constexpr void integrate(const std::function<double(double)>& fun, const double t0, const double t1,
+inline void integrate(const std::function<double(double)>& fun, const double t0, const double t1,
                double& result, double& error, const double tol=1e-8,const size_t max_depth=20) {
     const double fa = fun(t0);
     const double fb = fun(t1);

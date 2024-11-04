@@ -198,7 +198,8 @@ namespace cmmcore {
         return tolerance*(curve._interval[1]-curve._interval[0])/curve.length() ;
 
     }
-inline void csx( const NURBSCurve &curve, const NURBSSurface &surface,  std::vector<std::tuple<std::string, vec3, Vector<3>>> & result,double tol= 1e-3)
+    using CSXIntersections=std::vector<std::tuple<std::string, vec3, Vector<3>>>;
+inline void csx( const NURBSCurve &curve, const NURBSSurface &surface,  CSXIntersections & result,double tol= 1e-3)
 {
     double ptol_=computePtol(curve, tol);
     auto intersector=NURBSCurveSurfaceIntersector(curve,surface, tol,ptol_);
@@ -206,6 +207,14 @@ inline void csx( const NURBSCurve &curve, const NURBSSurface &surface,  std::vec
 
 
 }
+    inline auto csx( const NURBSCurve &curve, const NURBSSurface &surface,double tol= 1e-3)
+    {
+        double ptol_=computePtol(curve, tol);
+        auto intersector=NURBSCurveSurfaceIntersector(curve,surface, tol,ptol_);
+        return intersector.intersect();
+
+
+    }
 
 } // namespace cmmcore
 #endif //CSX_H

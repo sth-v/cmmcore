@@ -66,14 +66,14 @@ knots_test = executable('knots_test',
 test('knots_test',
      knots_test)
 
-# cxx_test
-cxx_test = executable('cxx_test',
-               'cxx_test.cpp',
+# ccx_test
+ccx_test = executable('ccx_test',
+               'ccx_test.cpp',
                include_directories : my_inc,
                install : false,link_with: libcmmcore)
 
-test('cxx_test',
-     cxx_test)
+test('ccx_test',
+     ccx_test)
 
 # monomial_test
 monomial_test = executable('monomial_test',
@@ -177,3 +177,11 @@ integrate_test = executable('integrate_test',
 )
 test('integrate_test',
      integrate_test)
+
+boundary_intersection_test = executable('boundary_intersection_test',
+                    'boundary_intersection_test.cpp',
+                    include_directories : my_inc,
+                    install : false
+)
+test('boundary_intersection_test',
+     boundary_intersection_test)

@@ -1,7 +1,22 @@
 # cmmcore
-The concise, cutting-edge CAD engine.
+The minimal, cutting-edge CAD engine.
 
 ## Overview
+
+## Key Points
+- **Geometry data structures**
+    - [`cmmcore/vec.h`](cmmcore/vec.h): Data structure for 2d,3d,4d vectors with SIMD optimisations.
+    - [`cmmcore/nurbs.h`](cmmcore/nurbs.h): Complete NURBS curves and surfaces implementation.
+    - [`cmmcore/nurbs_utils.h`](cmmcore/nurbs_utils.h): NURBS routines.
+    - [`cmmcore/bvh.hpp`](cmmcore/bvh.hpp) BVH implementation.
+- **Numeric methods**
+    - [`cmmcore/newthon2.h`](cmmcore/newthon2.h): A good implementation of Newton's method and a few other useful functions.
+    - [`cmmcore/integrate.h`](cmmcore/integrate.h): Numeric integration.
+- **Robust intersection algorithms**
+    - [`cmmcore/ccx.h`](cmmcore/ccx.h): curve x curve intersection algorithm (CCX). Works with NURBS curves.
+    - [`cmmcore/csx.h`](cmmcore/csx.h): curve x surface intersection algorithm (CSX). Works with NURBS curves and NURBS surfaces.
+    - [`cmmcore/ssx.h`](cmmcore/ssx.h): surface x surface intersection algorithm (SSX). Work in progress.
+
 
 ## Build
 

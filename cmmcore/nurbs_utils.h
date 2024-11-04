@@ -10,13 +10,10 @@
 #include <set>
 #include <stdexcept>
 #include <array>
-#ifdef CYTHON_ABI
+
 #include "vec.h"
 #include "binom.h"
-#else
-#include "cmmcore/vec.h"
-#include "cmmcore/binom.h"
-#endif
+
 
 #include <cstring>
 

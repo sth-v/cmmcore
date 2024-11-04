@@ -4,13 +4,12 @@
 
 #ifndef CMMCORE_NUMERIC_UTILS_H
 #define CMMCORE_NUMERIC_UTILS_H
-#ifdef CYTHON_ABI
+
 #include "vec.h"
 
-#else
-#include "cmmcore/vec.h"
 
-#endif
+
+
 #include <cstring>
 namespace cmmcore {
 inline double segmentsDistance(const vec3& p1,const vec3& p2,const vec3& q1,const vec3& q2,

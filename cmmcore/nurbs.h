@@ -37,7 +37,17 @@ namespace cmmcore {
         NURBSCurve(const std::vector<vec4> &control_points): NURBSCurve(
             control_points, control_points.size() >= 4 ? 3 : 1, false) {
         };
+        NURBSCurve(const size_t cpt_size, const int degree, const bool periodic=false): _degree(degree),_periodic(periodic) {
+            control_points.resize(cpt_size);
+            if( _periodic){
+                generate_knots_periodic();
+            }else
+            {
+                generate_knots();
+            }
 
+            update_interval();
+        };
         NURBSCurve(const std::vector<vec4> &control_points, const bool periodic): NURBSCurve(
             control_points, control_points.size() >= 4 ? 3 : 1, periodic) {
         };
@@ -518,7 +528,8 @@ namespace cmmcore {
 
 
     }
-    class NURBSSurface {
+    class NURBSSurface
+    {
     public:
         NURBSSurface() = default;
 
@@ -541,7 +552,69 @@ namespace cmmcore {
             }
             update_interval();
         }
+        NURBSSurface(const std::vector<std::vector<vec3> > &control_points, const std::array<int, 2> &degree,const std::vector<double> &knots_u = {}, const std::vector<double> &knots_v = {}
+                   ):_degree(degree){
 
+            _control_points.resize(control_points.size());
+            for (size_t i=0;i<control_points.size();++i)
+            {
+                _control_points[i].resize(control_points[i].size());
+
+                for (size_t j=0;j<control_points[i].size();++j)
+                {
+                    _control_points[i][j].set(control_points[i][j]);
+                    _control_points[i][j].w=1.;
+                }
+
+            }
+            _size = {control_points.size(), control_points[0].size()};
+            if (knots_u.empty()) {
+                generate_knots_u();
+            } else {
+                _knots_u = knots_u;
+            }
+            if (knots_v.empty()) {
+                generate_knots_v();
+            } else {
+                _knots_v = knots_v;
+            }
+            update_interval();
+
+    }
+        std::array<size_t,2>& shape()
+        {
+            return _size;
+
+        }
+        std::array<size_t,2> shape() const
+        {
+            return _size;
+
+        }
+        std::vector<double>& knots_u()
+        {
+            return _knots_u;
+        }
+        std::vector<double> knots_u() const
+        {
+            return _knots_u;
+        }
+        std::vector<double>& knots_v()
+        {
+            return _knots_v;
+        }
+        std::vector<double> knots_v() const
+        {
+            return _knots_v;
+        }
+         std::array<std::array<double,2>,2>& interval()
+        {
+            return _interval;
+        }
+         std::array<std::array<double,2>,2> interval() const
+        {
+            return _interval;
+        }
         void generate_knots_u() {
             std::size_t nu = _size[0];
             _knots_u.resize(nu + _degree[0] + 1);
