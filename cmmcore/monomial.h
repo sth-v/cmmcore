@@ -157,23 +157,23 @@ namespace cmmcore
         Monomial2D(int _n, int _m, const Tensor2D<vec3>& coeffs): n(_n), m(_m), coefficients(std::move(coeffs)),
                                                                   Mu(bpmat(n - 1)),
                                                                   Mv(bpmat(m - 1)),
-                                                                  Mu_inv(std::move(Mu.inverse())),
-                                                                  Mv_inv(std::move(Mv.inverse()))
+                                                                  Mu_inv(Mu.inverse()),
+                                                                  Mv_inv(Mv.inverse())
         {
         }
 
 
         Monomial2D(int _n, int _m): n(_n), m(_m),
-                                    coefficients(std::move(CMMCORE_CREATE_TENSOR2D(_n, _m, vec3, 0, 0, 0))),
-                                    Mu(bpmat(n - 1)), Mv(bpmat(m - 1)), Mu_inv(std::move(Mu.inverse())),
+                                    coefficients(CMMCORE_CREATE_TENSOR2D(_n, _m, vec3, 0, 0, 0)),
+                                    Mu(bpmat(n - 1)), Mv(bpmat(m - 1)), Mu_inv(Mu.inverse()),
                                     Mv_inv(std::move(Mv.inverse()))
         {
         }
 
         Monomial2D(const Tensor2D<vec3>& coeffs): n(coeffs.size()), m(coeffs[0].size()),
-                                                  coefficients(std::move(coeffs)),
+                                                  coefficients(coeffs),
                                                   Mu(bpmat(n - 1)), Mv(bpmat(m - 1)), Mu_inv(std::move(Mu.inverse())),
-                                                  Mv_inv(std::move(Mv.inverse()))
+                                                  Mv_inv(Mv.inverse())
         {
         }
 
@@ -183,9 +183,9 @@ namespace cmmcore
         }
 
         Monomial2D(const NURBSSurface& surf): n(surf._size[0]), m(surf._size[1]),
-                                              coefficients(std::move(CMMCORE_CREATE_TENSOR2D(n, m, vec3, 0, 0, 0))),
-                                              Mu(bpmat(n - 1)), Mv(bpmat(m - 1)), Mu_inv(std::move(Mu.inverse())),
-                                              Mv_inv(std::move(Mv.inverse()))
+                                              coefficients(CMMCORE_CREATE_TENSOR2D(n, m, vec3, 0, 0, 0)),
+                                              Mu(bpmat(n - 1)), Mv(bpmat(m - 1)), Mu_inv(Mu.inverse()),
+                                              Mv_inv(Mv.inverse())
         {
             Tensor2D<vec3> cpts = surf.control_points3d();
             Matrix MvT = Mv.transpose();
@@ -205,8 +205,8 @@ namespace cmmcore
             coefficients = std::move(coeffs);
             Mu = bpmat(n - 1);
             Mv = bpmat(m - 1);
-            Mu_inv = std::move(Mu.inverse());
-            Mv_inv = std::move(Mv.inverse());
+            Mu_inv = Mu.inverse();
+            Mv_inv = Mv.inverse();
         }
 
         void to_bezier(NURBSSurface& surf)
