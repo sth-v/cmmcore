@@ -263,7 +263,10 @@ inline bool GJK(const std::vector<vec3>&verticesA,
     printf(("["+format_vec3vec( verticesA)+","+format_vec3vec( verticesB)+"]\n\n" ).c_str() );
 #endif
     closestPointToOrigin = {0.0, 0.0, 0.0};
+#ifdef CMMCORE_DEBUG
     printf("WARNING GJK did not converge");
+#endif
+
     return true;
 }
 }
