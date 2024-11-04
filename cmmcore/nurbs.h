@@ -21,13 +21,16 @@
 #include "cmmcore/nurbs_utils.h"
 #include "cmmcore/aabb.h"
 #include "cmmcore/utils.h"
+
 #endif
 
-
+#include "integrate.h"
 namespace cmmcore {
 
+#define CMMCORE_NURBS_INTEGRATION_TOL 1e-3
+    class NURBSCurve
+    {
 
-    class NURBSCurve {
     public:
         NURBSCurve() = default;
 
@@ -115,7 +118,7 @@ namespace cmmcore {
         // Methods
 
         // Check if the NURBS curve is periodic
-        bool is_periodic() const {
+        constexpr bool is_periodic() const {
             for (int j = 0; j < _degree; ++j) {
                 for (int i = 0; i < 4; ++i) {
                     if (control_points[j][i] != control_points[control_points.size() - _degree + j][i]) {
@@ -224,7 +227,7 @@ namespace cmmcore {
             if (param <= _interval[0] || param >= _interval[1] ||
                 std::fabs(param - _interval[0]) <= 1e-12 || std::fabs(param - _interval[1]) <= 1e-12) {
                 throw std::invalid_argument("Cannot split from the domain edge.");
-            }
+                }
             int n_ctrlpts = static_cast<int>(control_points.size());
             auto ks = find_span(n_ctrlpts, _degree, param, knots, false) - _degree + 1;
             int s = find_multiplicity(param, knots);
@@ -283,7 +286,7 @@ namespace cmmcore {
             std::vector<vec4> CK(1);
 
             curve_derivs_alg1(n, _degree, knots, control_points, t, 1,     CK, _periodic);
-                auto der=CK[1];
+            auto der=CK[1];
 
             //printf("(%f,%f,%f,%f)\n",der.x,der.y,der.z,der.w);
             result.x= der.x;
@@ -292,6 +295,41 @@ namespace cmmcore {
 
         }
 
+
+         double length(const double t0, const double t1, const double tol=CMMCORE_NURBS_INTEGRATION_TOL )const
+        {
+            double result = 0.0;
+            double error = 0.0;
+
+            integrate( [this](const double t)->double {vec3 der;derivative(t,der); return der.length();},
+                t0,t1,
+                result,
+                error, tol);
+
+            return result;
+
+
+        }
+         double length(const double t, const double tol=CMMCORE_NURBS_INTEGRATION_TOL) const
+        {
+            return length(_interval[0],t, tol);
+        }
+         double length( ) const
+        {
+            return length(_interval[0],_interval[1], CMMCORE_NURBS_INTEGRATION_TOL );
+        };
+         double lengthAt(const double l,const double t0,const double initial_guess, const double tol=CMMCORE_NURBS_INTEGRATION_TOL )
+        {
+            vec3 der;
+            auto fun = [&](double t)->double {derivative(t,der); return der.length();};
+
+            return find_t1_newton(t0,l,fun, initial_guess, tol );
+        }
+        double lengthAt(const double l, const double tol=CMMCORE_NURBS_INTEGRATION_TOL )
+        {
+
+            return lengthAt(l, _interval[0],(_interval[0]+_interval[1])*0.5, tol);
+        }
 
         void derivative(const double t, std::vector<vec3> &result, const size_t d) const {
             int n = static_cast<int>(control_points.size()) - 1;
@@ -453,6 +491,8 @@ namespace cmmcore {
                 _aabb.expand(p.to_vec3());
             }
         }
+
+
     };
 
     // External function declarations
@@ -475,6 +515,7 @@ namespace cmmcore {
             result.push_back(new_row);
 
         }
+
 
     }
     class NURBSSurface {

@@ -170,3 +170,10 @@ newthon2_test = executable('newthon2_test',
 test('newthon2_test',
      newthon2_test)
 
+integrate_test = executable('integrate_test',
+                    'integrate_test.cpp',
+                    include_directories : my_inc,
+                    install : false
+)
+test('integrate_test',
+     integrate_test)
