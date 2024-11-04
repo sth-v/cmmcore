@@ -72,7 +72,7 @@ namespace cmmcore {
             double u = (u0 + u1) * 0.5;
             double v = (v0 + v1) * 0.5;
 
-            if (std::abs(u - u0) < ptol || std::abs(u - u1) < ptol || 
+            if (std::abs(u - u0) < ptol || std::abs(u - u1) < ptol ||
                 std::abs(v - v0) < ptol || std::abs(v - v1) < ptol) {
                 return;
             }
@@ -93,7 +93,7 @@ namespace cmmcore {
                 auto [point, params] = new_point.value();
                 double t = params[0], u = params[1], v = params[2];
 
-                if (std::abs(u - u0) < ptol || std::abs(u - u1) < ptol || 
+                if (std::abs(u - u0) < ptol || std::abs(u - u1) < ptol ||
                     std::abs(v - v0) < ptol || std::abs(v - v1) < ptol) {
                     return;
                 }
