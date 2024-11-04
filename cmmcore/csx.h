@@ -193,8 +193,19 @@ namespace cmmcore {
             return std::abs(curve_tangent.dot(surface_normal)) < tolerance;
         }
     };
+    inline double computePtol(const NURBSCurve &curve,double tolerance)
+    {
+        return tolerance*(curve._interval[1]-curve._interval[0])/curve.length() ;
+
+    }
+inline void csx( const NURBSCurve &curve, const NURBSSurface &surface,  std::vector<std::tuple<std::string, vec3, Vector<3>>> & result,double tol= 1e-3)
+{
+    double ptol_=computePtol(curve, tol);
+    auto intersector=NURBSCurveSurfaceIntersector(curve,surface, tol,ptol_);
+    result=std::move(intersector.intersect());
 
 
+}
 
 } // namespace cmmcore
 #endif //CSX_H

@@ -193,7 +193,7 @@ constexpr void forwardSubstitution(const Matrix<N>& L, const Vector<N>& b, Vecto
 // Solve L^T * x = y
 template <size_t N>
 constexpr void backwardSubstitution(const Matrix<N>& L, const Vector<N>& y, Vector<N>& x) {
-    for (int i = static_cast<int>(N) - 1; i >= 0; --i) {
+    for (int i = N - 1; i >= 0; --i) {
         double sum = y[i];
         for (size_t k = i + 1; k < N; ++k)
             sum -= L[k][i] * x[k];

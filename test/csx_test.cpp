@@ -13,7 +13,11 @@ int main() {
   for (auto& [name, pt, vec] : res) {
       std::cout  <<" "<< format_vec3(pt)<< std::endl;
   }
-  std::cout << "----------------------------------------" << std::endl;
-
-
+    std::cout << "----------------------------------------" << std::endl;
+    std::vector<std::tuple<std::string, vec3, Vector<3>>> result2;
+    csx(curve, surface,  result2,1e-3);
+    for (auto& [name, pt, vec] : result2) {
+        std::cout  <<" "<< format_vec3(pt)<< std::endl;
+    }
+    std::cout << "----------------------------------------" << std::endl;
 }
