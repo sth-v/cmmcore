@@ -5,14 +5,14 @@ from libcpp.vector cimport vector
 from libcpp.string cimport string
 from libcpp cimport bool
 
-cdef extern from "vec.h"  namespace "cmmcore" nogil:
+cdef extern from "vec.h" namespace "cmmcore" nogil:
     cdef cppclass vec2:
         double x, y
         vec2()
         vec2(double value)
         vec2(double v1, double v2)
-        explicit vec2(double[2]& arr)
-        vec2(const vec2& from, const vec2& to)
+        vec2(double[2]& arr)
+        vec2(const vec2&, const vec2& to)
         size_t size() const
         void set(double v1)
         void set(double v1, double v2)
@@ -23,10 +23,7 @@ cdef extern from "vec.h"  namespace "cmmcore" nogil:
         vec2 operator-(const vec2& other) const
         vec2 operator*(const vec2& other) const
         vec2 operator*(double val) const
-        void operator*=(double val)
-        void operator+=(const vec2& other)
-        void operator/=(double val)
-        void operator-=(const vec2& other)
+
         double& operator[](size_t index)
         double operator[](size_t index) const
         double dot(const vec2& other) const

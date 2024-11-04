@@ -160,3 +160,13 @@ csx_test = executable('csx_test',
 )
 test('csx_test',
      csx_test)
+
+# newthon2_test
+newthon2_test = executable('newthon2_test',
+                      'newthon2_test.cpp',
+                      include_directories : my_inc,
+                      install : false
+)
+test('newthon2_test',
+     newthon2_test)
+

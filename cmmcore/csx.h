@@ -10,24 +10,12 @@
 #include <tuple>
 #include <optional>
 #include <cmath>
-#include <iostream>
-#include <algorithm>
-#include <cstring>
+
 #include "separability.h"
 #include "cmmcore/nurbs.h"
 #include "cmmcore/vec.h"
-#include "cmmcore/newthon.h"
+#include "cmmcore/newthon2.h"
 
-#include <vector>
-#include <array>
-#include <string>
-#include <tuple>
-#include <optional>
-#include <cmath>
-#include <iostream>
-#include <algorithm>
-#include "cmmcore/nurbs_utils.h"
-#include "cmmcore/vec.h"
 
 namespace cmmcore {
 
@@ -39,7 +27,7 @@ namespace cmmcore {
         NURBSCurveSurfaceIntersector(const NURBSCurve &curve, const NURBSSurface &surface, double tolerance = 1e-3, double ptol = 1e-7)
             : curve(curve), surface(surface), tolerance(tolerance), ptol(ptol) {}
 
-         std::vector<std::tuple<std::string, vec3, std::vector<double>>> intersect() {
+         std::vector<std::tuple<std::string, vec3, Vector<3>>> intersect() {
             intersections.clear();
             _curve_surface_intersect(curve, surface);
             return intersections;
@@ -50,19 +38,19 @@ namespace cmmcore {
         const NURBSSurface &surface;
         double tolerance;
         double ptol;
-        std::vector<std::tuple<std::string, vec3, std::vector<double>>> intersections;
+        std::vector<std::tuple<std::string, vec3, Vector<3>>> intersections;
 
         bool _is_valid_point(vec3 point, const NURBSCurve& curve, const NURBSSurface& surface,
-                              const std::vector<double>& params) {
+                              const Vector<3>& params) {
             vec3 curve_pt;
-            try {
+
                 curve.evaluate(params[0], curve_pt);
                 vec3 surface_pt;
                 surface.evaluate(params[1], params[2], surface_pt);
                 return (curve_pt - surface_pt).length() <= tolerance;
-            } catch (const std::exception&) {
-                return false;
-            }
+
+
+
             return true;
         }
 
@@ -125,16 +113,16 @@ namespace cmmcore {
 
                 // Recursively check each combination
                 for (const auto& s : surfaces) {
-                    for (const auto& curve : {curve1, curve2})
+                    for (const auto& nurbs_curve : {curve1, curve2})
                     {
-                        std::vector<vec3> curve_points = curve.get_control_points3d();
-                        std::vector<vec3> surface_points = surface.control_points_flat3d();
+                        std::vector<vec3> curve_points = nurbs_curve.get_control_points3d();
+                        std::vector<vec3> surface_points = s.control_points_flat3d();
 
                         if ( SphericalCentralProjectionTest2(point,curve_points, surface_points)) {
                             continue;
 
                         }else{
-                            _curve_surface_intersect(curve, s);
+                            _curve_surface_intersect(nurbs_curve, s);
                         }
                     }
 
@@ -161,30 +149,24 @@ namespace cmmcore {
 
         }
 
-        std::optional<std::pair<vec3, std::vector<double>>> _find_new_intersection(const NURBSCurve &curve, const NURBSSurface &surface) {
-            auto equation = [&](const std::vector<double> &params) -> double {
+        std::optional<std::pair<vec3, Vector<3>>> _find_new_intersection(const NURBSCurve &curve, const NURBSSurface &surface) {
+            auto equation = [&](const Vector<3> &params) -> double {
                 // First validate parameters are in range
-                if (!_is_valid_parameter(params, curve._interval, surface._interval)) {
-                    return std::numeric_limits<double>::infinity();
-                }
-                
-                try {
                     vec3 curve_pt, surface_pt;
                     curve.evaluate(params[0], curve_pt);
                     surface.evaluate(params[1], params[2], surface_pt);
-                    auto d = (curve_pt - surface_pt);
+                    const auto d = (curve_pt - surface_pt);
                     return d.sqLength();
-                } catch (const std::exception&) {
-                    return std::numeric_limits<double>::infinity();
-                }
+
             };
 
-            std::vector<double> initial_guess = {(curve._interval[0] + curve._interval[1]) * 0.5,
+            Vector<3> initial_guess = {(curve._interval[0] + curve._interval[1]) * 0.5,
                                                    (surface._interval[0][0] + surface._interval[0][1]) * 0.5,
                                                    (surface._interval[1][0] + surface._interval[1][1]) * 0.5};
 
-            auto result = newtonsMethod(equation, initial_guess);
-            if (!result.empty() && _is_valid_parameter(result, curve._interval, surface._interval)) {
+            auto result = newtonsMethod<3>(equation, initial_guess,ptol, 15);
+
+            if (_is_valid_parameter(result, curve._interval, surface._interval)) {
                 vec3 curve_pt, surface_pt;
                 curve.evaluate(result[0], curve_pt);
                 surface.evaluate(result[1], result[2], surface_pt);
@@ -196,14 +178,14 @@ namespace cmmcore {
             return std::nullopt;
         }
 
-        bool _is_valid_parameter(const std::vector<double> &params, const std::array<double, 2> &curve_interval,
+        bool _is_valid_parameter(const Vector<3> &params, const std::array<double, 2> &curve_interval,
                                  const std::array<std::array<double, 2>, 2> &surface_interval) {
             return (params[0] >= curve_interval[0] && params[0] <= curve_interval[1]) &&
                    (params[1] >= surface_interval[0][0] && params[1] <= surface_interval[0][1]) &&
                    (params[2] >= surface_interval[1][0] && params[2] <= surface_interval[1][1]);
         }
 
-        bool _is_degenerate(const std::vector<double> &params, const NURBSCurve &curve, const NURBSSurface &surface) {
+        bool _is_degenerate(const Vector<3> &params, const NURBSCurve &curve, const NURBSSurface &surface) {
             vec3 curve_tangent;
             curve.derivative(params[0], curve_tangent);
             vec3 surface_normal;

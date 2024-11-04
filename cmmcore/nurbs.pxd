@@ -4,6 +4,7 @@ cimport cython
 from libcpp.vector cimport vector
 from libcpp.pair cimport pair
 from libcpp cimport bool
+from libcpp.unordered_set cimport unordered_set
 from cmmcore.vec cimport vec3,vec4
 from cmmcore.bvh cimport AABB
 
@@ -44,7 +45,7 @@ cdef extern from "nurbs.h" namespace "cmmcore" nogil:
         NURBSSurface(const vector[vector[vec4]] &control_points, const int[2] &degree, const vector[double] &knots_u, const vector[double] &knots_v)
         void generate_knots_u()
         void generate_knots_v()
-        void evaluate(double u, double v, vec3 &result) const noexcept
+        void evaluate(double u, double v, vec3 &result) const
         void insert_knot_u(double t, int count)
         void insert_knot_v(double t, int count)
         pair[NURBSSurface, NURBSSurface] split_surface_u(double param, double tol) const
