@@ -7,10 +7,9 @@
 #include <vector>
 #include <cassert>
 #include <cmath>
-#include <algorithm>
 #include <set>
 #include <stdexcept>
-
+#include <array>
 #ifdef CYTHON_ABI
 #include "vec.h"
 #include "binom.h"
@@ -22,6 +21,8 @@
 #include <cstring>
 
 namespace cmmcore {
+#define CMMCORE_MAX_DEGREE 4
+constexpr size_t CMMCORE_DEG_STACK_SIZE= CMMCORE_MAX_DEGREE +1;
     /**
      * @brief Determine the knot span index for a given parameter value `u`.
      *
@@ -73,12 +74,13 @@ namespace cmmcore {
      * @param N Output vector to store the basis functions.
      */
     inline void basis_funs(const int i, const double u, const int p, const std::vector<double> &U,
-                           std::vector<double> &N) noexcept {
+                           std::array<double, CMMCORE_DEG_STACK_SIZE> &N) noexcept {
         int pp = p + 1;
-        N.resize(pp, 0.0);
-
-        std::vector<double> left(pp, 0.0);
-        std::vector<double> right(pp, 0.0);
+        //N.resize(pp, 0.0);
+        std::array<double, CMMCORE_DEG_STACK_SIZE> left{};
+        std::array<double, CMMCORE_DEG_STACK_SIZE> right{};
+        //std::vector<double> left(pp, 0.0);
+        //std::vector<double> right(pp, 0.0);
         N[0] = 1.0;
 
         for (int j = 1; j < pp; ++j) {
@@ -113,7 +115,7 @@ namespace cmmcore {
         result.set(0.,0.,0.); // Initialize result with 4 zeros
 
         const int span = find_span(n, p, u, U, is_periodic);
-        std::vector<double> N(pp, 0.0);
+        std::array<double, CMMCORE_DEG_STACK_SIZE> N{};
         basis_funs(span, u, p, U, N);
 
         double sum_of_weights = 0.0;
@@ -156,10 +158,11 @@ namespace cmmcore {
         // Initialize ders with zeros
         ders.assign(nn, vec4( 0.0,0.0,0.0,.0));
 
-        std::vector<vec4> ndu(pp,  vec4( 0.0,0.0,0.0,.0));
-        std::vector<double> left(pp, 0.0);
-        std::vector<double> right(pp, 0.0);
-        std::vector<vec4> a(2, vec4( 0.0,0.0,0.0,.0));
+        std::array<vec4,CMMCORE_DEG_STACK_SIZE> ndu{};
+        std::array<double,CMMCORE_DEG_STACK_SIZE> left{};
+        std::array<double,CMMCORE_DEG_STACK_SIZE> right{};
+        //std::vector<double> right(pp, 0.0);
+        std::array<vec4,2>  a;
 
         ndu[0][0] = 1.0;
 
@@ -438,14 +441,15 @@ namespace cmmcore {
         int uspan = find_span(n, p, u, U, periodic_u);
         int vspan = find_span(m, q, v, V, periodic_v);
 
-        std::vector<double> Nu(p + 1, 0.0);
-        std::vector<double> Nv(q + 1, 0.0);
+        std::array<double, CMMCORE_DEG_STACK_SIZE>Nu{};
+        std::array<double, CMMCORE_DEG_STACK_SIZE>Nv{};
+        //std::vector<double> Nv(q + 1, 0.0);
 
         basis_funs(uspan, u, p, U, Nu);
         basis_funs(vspan, v, q, V, Nv);
 
         const int dim = static_cast<int>(Pw[0][0].size());
-        std::vector<vec4> temp(q + 1, vec4( 0.0,0.0,0.0,.0));
+        std::array<vec4, CMMCORE_DEG_STACK_SIZE> temp{};
 
         // Compute the temporary points
         for (int l = 0; l <= q; ++l) {
