@@ -425,6 +425,7 @@ namespace cmmcore {
             return derivative;
         }
 
+
         std::vector<vec4> get_control_points() const {
             return control_points;
         }
@@ -1087,6 +1088,96 @@ namespace cmmcore {
             decomposeDirection(item, bezierSurfaces, 1);
         }
     }
+
+    /**
+         * Join two NURBS curves if they share an endpoint
+         * @param first First curve to join
+         * @param second Second curve to join
+         * @param result The resulting joined curve
+         * @return true if curves were successfully joined, false otherwise
+         */
+    inline bool join(const NURBSCurve& first, const NURBSCurve& second, NURBSCurve& result)
+    {
+        // Check if either curve is already closed
+        if (first.is_periodic() || second.is_periodic())
+        {
+            return false;
+        }
+
+        // Get endpoints of both curves
+        vec3 first_start, first_end, second_start, second_end;
+        first.evaluate(first._interval[0], first_start);
+        first.evaluate(first._interval[1], first_end);
+        second.evaluate(second._interval[0], second_start);
+        second.evaluate(second._interval[1], second_end);
+
+        // Tolerance for endpoint matching
+        const double tol = 1e-10;
+
+        // Check all possible connection combinations
+        bool start_start = first_start.distance(second_start) < tol;
+        bool start_end = first_start.distance(second_end) < tol;
+        bool end_start = first_end.distance(second_start) < tol;
+        bool end_end = first_end.distance(second_end) < tol;
+
+        // If no endpoints match, cannot join
+        if (!start_start && !start_end && !end_start && !end_end)
+        {
+            return false;
+        }
+
+        // Get control points from both curves
+        std::vector<vec4> new_control_points;
+        new_control_points.reserve(first.control_points.size() + second.control_points.size());
+
+        // Join based on which endpoints match
+        if (end_start)
+        {
+            // Normal case: first end to second start
+            new_control_points = first.control_points;
+            new_control_points.insert(new_control_points.end(),
+                                      second.control_points.begin(), second.control_points.end());
+        }
+        else if (start_start)
+        {
+            // Reverse first curve
+            new_control_points.insert(new_control_points.end(),
+                                      first.control_points.rbegin(), first.control_points.rend());
+            new_control_points.insert(new_control_points.end(),
+                                      second.control_points.begin(), second.control_points.end());
+        }
+        else if (end_end)
+        {
+            // Reverse second curve
+            new_control_points = first.control_points;
+            new_control_points.insert(new_control_points.end(),
+                                      second.control_points.rbegin(), second.control_points.rend());
+        }
+        else if (start_end)
+        {
+            // Reverse first curve and reverse second curve
+            new_control_points.insert(new_control_points.end(),
+                                      first.control_points.rbegin(), first.control_points.rend());
+            new_control_points.insert(new_control_points.end(),
+                                      second.control_points.rbegin(), second.control_points.rend());
+        }
+
+        // If both start and end points match (after potential reversals), make it periodic
+        bool should_be_periodic = false;
+        {
+            vec3 new_start, new_end;
+            vec4 start_pt = new_control_points.front();
+            vec4 end_pt = new_control_points.back();
+            new_start.set(start_pt.x / start_pt.w, start_pt.y / start_pt.w, start_pt.z / start_pt.w);
+            new_end.set(end_pt.x / end_pt.w, end_pt.y / end_pt.w, end_pt.z / end_pt.w);
+            should_be_periodic = new_start.distance(new_end) < tol;
+        }
+
+        // Create result curve
+        result = NURBSCurve(new_control_points, first._degree, should_be_periodic);
+        return true;
+    }
+
 }
 
 

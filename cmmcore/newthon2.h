@@ -20,7 +20,7 @@ template <size_t N>
 using Vector = std::array<double, N>;
 
 template <size_t N>
-using Matrix = std::array<std::array<double, N>, N>;
+using matrix = std::array<std::array<double, N>, N>;
 
 // Helper function to compute dot product
 template <size_t N>
@@ -69,9 +69,9 @@ constexpr Vector<N> computeGradient(const std::function<double(const Vector<N>&)
 
 // Compute the Hessian matrix of f at point using central differences
 template <size_t N>
-constexpr Matrix<N> computeHessian(const std::function<double(const Vector<N>&)>& f,
+constexpr matrix<N> computeHessian(const std::function<double(const Vector<N>&)>& f,
                          const Vector<N>& point, double h = 1e-5) {
-    Matrix<N> H{};
+    matrix<N> H{};
     Vector<N> point_perturbed = point;
     double f0 = f(point);
 
@@ -157,7 +157,7 @@ constexpr Matrix<N> computeHessian(const std::function<double(const Vector<N>&)>
 // Cholesky decomposition for solving H * x = b
 // Returns true if successful, false if matrix is not positive definite
 template <size_t N>
-constexpr bool choleskyDecomposition(const Matrix<N>& H, Matrix<N>& L) {
+constexpr bool choleskyDecomposition(const matrix<N>& H, matrix<N>& L) {
     L = {}; // Initialize L to zero
 
     for (size_t i = 0; i < N; ++i) {
@@ -181,7 +181,7 @@ constexpr bool choleskyDecomposition(const Matrix<N>& H, Matrix<N>& L) {
 
 // Solve L * y = b
 template <size_t N>
-constexpr void forwardSubstitution(const Matrix<N>& L, const Vector<N>& b, Vector<N>& y) {
+constexpr void forwardSubstitution(const matrix<N>& L, const Vector<N>& b, Vector<N>& y) {
     for (size_t i = 0; i < N; ++i) {
         double sum = b[i];
         for (size_t k = 0; k < i; ++k)
@@ -192,7 +192,7 @@ constexpr void forwardSubstitution(const Matrix<N>& L, const Vector<N>& b, Vecto
 
 // Solve L^T * x = y
 template <size_t N>
-constexpr void backwardSubstitution(const Matrix<N>& L, const Vector<N>& y, Vector<N>& x) {
+constexpr void backwardSubstitution(const matrix<N>& L, const Vector<N>& y, Vector<N>& x) {
     for (int i = N - 1; i >= 0; --i) {
         double sum = y[i];
         for (size_t k = i + 1; k < N; ++k)
@@ -203,8 +203,8 @@ constexpr void backwardSubstitution(const Matrix<N>& L, const Vector<N>& y, Vect
 
 // Solve H * x = b using Cholesky decomposition
 template <size_t N>
-constexpr bool solveLinearSystem(Matrix<N> H, const Vector<N>& b, Vector<N>& x) {
-    Matrix<N> L;
+constexpr bool solveLinearSystem(matrix<N> H, const Vector<N>& b, Vector<N>& x) {
+    matrix<N> L;
     if (!choleskyDecomposition(H, L)) {
         return false; // Not positive definite
     }
@@ -244,7 +244,7 @@ constexpr Vector<N> newtonsMethod(const std::function<double(const Vector<N>&)>&
                         Vector<N> point,
                         double tol = 1e-5, int maxIter = 100) {
     Vector<N> grad{};
-    Matrix<N> H{};
+    matrix<N> H{};
     Vector<N> step{};
 
     for (int iter = 0; iter < maxIter; ++iter) {
@@ -286,7 +286,7 @@ constexpr Vector<N> newtonsMethod(const std::function<double(const Vector<N>&)>&
         double mu = 1e-6;
         bool success = false;
         while (mu <= 1e6) {
-            Matrix<N> H_mod = H;
+            matrix<N> H_mod = H;
             for (size_t i = 0; i < N; ++i) {
                 H_mod[i][i] += mu;
             }

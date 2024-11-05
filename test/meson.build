@@ -185,3 +185,10 @@ boundary_intersection_test = executable('boundary_intersection_test',
 )
 test('boundary_intersection_test',
      boundary_intersection_test)
+kdtree_test = executable('kdtree_test',
+                    'kdtree_test.cpp',
+                    include_directories : my_inc,
+                    install : false
+)
+test('kdtree_test',
+     kdtree_test)

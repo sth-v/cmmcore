@@ -97,6 +97,10 @@ namespace cmmcore {
       x = arr[0];
       y=arr[1];
     }
+    double distance(const vec2& other) const
+    {
+      return (*this-other).length();
+    }
     bool operator==(const vec2& other) const {
 
       return std::abs(x - other.x) < std::numeric_limits<double>::epsilon() &&
@@ -157,6 +161,10 @@ namespace cmmcore {
     }
     double dot(const vec2& other) const {
       return x * other.x + y * other.y;
+    }
+    double distanceSq(const vec2& other) const
+    {
+      return (*this-other).sqLength();
     }
     double sqLength() const {
       return dot(*this);
@@ -255,6 +263,10 @@ struct vec3 {
     y=values.y;
     z=values.z;
 
+  }
+  double distance(const vec3& other) const
+  {
+    return (*this-other).length();
   }
   void operator*=(const double val) {
     x*=val;
@@ -383,7 +395,10 @@ struct vec3 {
     result.z=z + b.z;
   }
 
-
+  double distanceSq(const vec3& other) const
+  {
+    return (*this-other).sqLength();
+  }
   double sqLength() const {
     #ifdef ___ARM_NEON //__ARM_NEON
     float32x4_t v =  vld1q_f32(&x);
@@ -712,6 +727,14 @@ struct vec4 {
   }
   vec4 project(const vec4& other) const {
     return CMMCORE_VEC_PROJECT(*this,other);
+  }
+  double distance(const vec4& other) const
+  {
+    return (*this-other).length();
+  }
+  double distanceSq(const vec4& other) const
+  {
+    return (*this-other).sqLength();
   }
   bool operator==(const vec4& other) const {
 
