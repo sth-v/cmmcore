@@ -53,6 +53,7 @@ NURBSCurve extract_isocurve(const NURBSSurface& surface, double param, const std
         for (size_t i=0;i<surface._knots_v.size();i++) {
             crv.knots[i]=surface._knots_v[i];
         }
+        crv.update_interval();
 
 
 
@@ -64,6 +65,7 @@ NURBSCurve extract_isocurve(const NURBSSurface& surface, double param, const std
             }
             crv.control_points[i].set(point);
         }
+        crv.update_interval();
 
         return crv;
     } 
@@ -153,7 +155,15 @@ struct IntersectionPoint {
             surface2_params = boundary_index_to_params(boundary_index, curve_param);
         }
     }
+    IntersectionPoint(const IntersectionPoint& other)     : point(other.point)
+        , curve_param(other.curve_param)
+        , surface_params(other.surface_params)
+        , boundary_index(other.boundary_index)
+        , is_from_first_surface(other.is_from_first_surface)
+        , interval(other.interval),surface1_params(other.surface1_params),surface2_params(other.surface2_params)
+    {
 
+    }
     std::pair<std::array<double, 2>, std::array<double, 2>> get_start_params() const {
         if (is_from_first_surface) {
             // For first surface, convert boundary index to fixed parameter
@@ -186,11 +196,44 @@ private:
 
 
 };
-
-
-/**
- * Find all intersection points between the boundaries of two NURBS surfaces
- */
+    /**
+* @brief The function is essentially finding all points where the boundary curves of one surface intersect with the other surface.
+*
+* This function identifies intersection points where the boundary curves of `surf1` 
+* and `surf2` intersect. For each detected intersection, the function populates 
+* `intersection_points` with the intersection location and associated parameters.
+* Duplicate intersections within a specified tolerance are removed at the end.
+*
+* @param surf1 The first NURBS surface (`NURBSSurface`) whose boundary intersections
+*     are to be computed.
+* @param surf2 The second NURBS surface (`NURBSSurface`) whose boundary intersections
+*     are to be computed.
+* @param intersection_points A vector to store intersection points (`IntersectionPoint`),
+*     populated by the function with details of each intersection.
+* @param tol A tolerance (`double`) for detecting and eliminating duplicate points;
+*     defaults to `1e-6`.
+*
+* The function operates as follows:
+*
+* - Extracts the boundary curves of `surf1` and `surf2`.
+* - Detects intersections between each boundary of `surf1` with `surf2`, and
+*   vice versa.
+* - Adds each intersection point to `intersection_points`, including details such as
+*   parameter values and boundary index.
+* - Removes duplicate intersection points based on the provided tolerance.
+*
+* Example Usage:
+*
+* .. code-block:: cpp
+*
+*      NURBSSurface surf1, surf2;
+*      std::vector<IntersectionPoint> intersections;
+*      find_boundary_intersections(surf1, surf2, intersections, 1e-5);
+*
+*      // `intersections` now contains unique intersection points between the
+*      // boundaries of `surf1` and `surf2`.
+*
+*/
 inline void find_boundary_intersections(
     const NURBSSurface& surf1, 
     const NURBSSurface& surf2,
@@ -224,8 +267,9 @@ inline void find_boundary_intersections(
     
     // Find intersections of surf2's boundaries with surf1
     for (size_t i = 0; i < boundaries2.size(); ++i) {
-        intersections.clear();
+        //intersections.clear();
         csx(boundaries2[i], surf1, intersections,tol);
+
         for (const auto& [intersection_type, point, params] : intersections) {
             intersection_points.emplace_back(
                 point,

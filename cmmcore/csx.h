@@ -20,25 +20,32 @@
 namespace cmmcore {
 
 
+    enum class CSXType
+    {
+        TRANSVERSAL,
+        DEGENERATE
 
+    };
+    using CSXInt=std::tuple<CSXType, vec3, Vector<3>>;
+    using CSXIntersections=std::vector<CSXInt>;
 
     class NURBSCurveSurfaceIntersector {
     public:
         NURBSCurveSurfaceIntersector(const NURBSCurve &curve, const NURBSSurface &surface, double tolerance = 1e-3, double ptol = 1e-7)
-            : curve(curve), surface(surface), tolerance(tolerance), ptol(ptol) {}
+            : _curve(curve), _surface(surface), tolerance(tolerance), ptol(ptol) {}
 
-         std::vector<std::tuple<std::string, vec3, Vector<3>>> intersect() {
+         CSXIntersections& intersect() {
             intersections.clear();
-            _curve_surface_intersect(curve, surface);
+            _curve_surface_intersect(_curve, _surface);
             return intersections;
         }
 
     private:
-        const NURBSCurve &curve;
-        const NURBSSurface &surface;
+        const NURBSCurve &_curve;
+        const NURBSSurface &_surface;
         double tolerance;
         double ptol;
-        std::vector<std::tuple<std::string, vec3, Vector<3>>> intersections;
+        CSXIntersections intersections;
 
         bool _is_valid_point(vec3 point, const NURBSCurve& curve, const NURBSSurface& surface,
                               const Vector<3>& params) {
@@ -56,9 +63,10 @@ namespace cmmcore {
 
         void _curve_surface_intersect(const NURBSCurve &curve, const NURBSSurface &surface) {
             // Check if we're already at a too small subdivision
-            if (curve._interval[1] - curve._interval[0] < ptol ||
-                surface._interval[0][1] - surface._interval[0][0] < ptol ||
-                surface._interval[1][1] - surface._interval[1][0] < ptol) {
+
+            if (std::abs(curve._interval[1] - curve._interval[0]) < ptol ||
+                std::abs(surface._interval[0][1] - surface._interval[0][0]) < ptol ||
+                std::abs(surface._interval[1][1] - surface._interval[1][0] )< ptol) {
                 return;
             }
 
@@ -78,7 +86,9 @@ namespace cmmcore {
             }
 
             if (!new_point.has_value()) {
-                auto [curve1, curve2] = curve.split(0.5 * (curve._interval[0] + curve._interval[1]), false); // normalize_knots=false
+
+                double f=0.5 * (curve._interval[0] + curve._interval[1]);
+                auto [curve1, curve2] = curve.split(f, false); // normalize_knots=false
                 auto [surface1, surface2, surface3, surface4] = surface.subdivide(u, v); // normalize_knots=false
 
                 _curve_surface_intersect(curve1, surface1);
@@ -93,17 +103,17 @@ namespace cmmcore {
                 auto [point, params] = new_point.value();
                 double t = params[0], u = params[1], v = params[2];
 
-                if (std::abs(u - u0) < ptol || std::abs(u - u1) < ptol ||
-                    std::abs(v - v0) < ptol || std::abs(v - v1) < ptol) {
-                    return;
-                }
+
 
                 if (_is_degenerate(params, curve, surface)) {
-                    intersections.emplace_back("degenerate", point, params);
+                    intersections.emplace_back(CSXType::DEGENERATE, point, params);
                 } else {
-                    intersections.emplace_back("transversal", point, params);
+                    intersections.emplace_back(CSXType::TRANSVERSAL, point, params);
                 }
-
+                if (std::abs(u - u0) < ptol || std::abs(u - u1) < ptol ||
+                                std::abs(v - v0) < ptol || std::abs(v - v1) < ptol) {
+                    return;
+                                }
                 // Add spherical separability check
 
 
@@ -113,17 +123,27 @@ namespace cmmcore {
 
                 // Recursively check each combination
                 for (const auto& s : surfaces) {
-                    for (const auto& nurbs_curve : {curve1, curve2})
-                    {
-                        std::vector<vec3> curve_points = nurbs_curve.get_control_points3d();
+
+
+                        std::vector<vec3> curve_points = curve1.get_control_points3d();
                         std::vector<vec3> surface_points = s.control_points_flat3d();
 
                         if ( SphericalCentralProjectionTest2(point,curve_points, surface_points)) {
                             continue;
 
                         }else{
-                            _curve_surface_intersect(nurbs_curve, s);
-                        }
+                            _curve_surface_intersect(curve1, s);
+
+                    }
+                    std::vector<vec3> curve_points2 = curve2.get_control_points3d();
+
+
+                    if ( SphericalCentralProjectionTest2(point,curve_points2, surface_points)) {
+                        continue;
+
+                    }else{
+                        _curve_surface_intersect(curve2, s);
+
                     }
 
 
@@ -198,7 +218,7 @@ namespace cmmcore {
         return tolerance*(curve._interval[1]-curve._interval[0])/curve.length() ;
 
     }
-    using CSXIntersections=std::vector<std::tuple<std::string, vec3, Vector<3>>>;
+
 inline void csx( const NURBSCurve &curve, const NURBSSurface &surface,  CSXIntersections & result,double tol= 1e-3)
 {
     double ptol_=computePtol(curve, tol);
@@ -209,6 +229,7 @@ inline void csx( const NURBSCurve &curve, const NURBSSurface &surface,  CSXInter
 }
     inline auto csx( const NURBSCurve &curve, const NURBSSurface &surface,double tol= 1e-3)
     {
+
         double ptol_=computePtol(curve, tol);
         auto intersector=NURBSCurveSurfaceIntersector(curve,surface, tol,ptol_);
         return intersector.intersect();

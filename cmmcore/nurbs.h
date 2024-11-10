@@ -113,6 +113,19 @@ namespace cmmcore {
             _interval = other._interval;
             _hull = other._hull;
         };
+        NURBSCurve (NURBSCurve &&other)
+        {
+            if (this != &other)
+            {
+                control_points = other.control_points;
+                _degree = other._degree;
+                knots = other.knots;
+                _aabb = other._aabb;
+                _interval = other._interval;
+                _hull = other._hull;
+
+            }
+        }
 
         NURBSCurve &operator=(const NURBSCurve &other) {
             control_points = other.control_points;
@@ -233,7 +246,8 @@ namespace cmmcore {
         }
 
         // Split the curve at a given parameter value
-        std::pair<NURBSCurve, NURBSCurve> split(const double param, const bool normalize_knots = false) const {
+        std::pair<NURBSCurve, NURBSCurve> split(const double param, const bool normalize_knots = false) const  {
+
             if (param <= _interval[0] || param >= _interval[1] ||
                 std::fabs(param - _interval[0]) <= 1e-12 || std::fabs(param - _interval[1]) <= 1e-12) {
                 throw std::invalid_argument("Cannot split from the domain edge.");
@@ -279,6 +293,7 @@ namespace cmmcore {
                 curve1.normalize_knots();
                 curve2.normalize_knots();
             }
+
             return {curve1, curve2};
         }
 
@@ -480,11 +495,10 @@ namespace cmmcore {
             return _interval;
         }
 
-        AABB &aabb() {
-            //rebuildAABB();
-
-            return _aabb;
-        }
+        const AABB &aabb() const
+         {
+             return _aabb;
+         }
 
         // Member variables
         std::vector<vec4> control_points{}; // Each control point is (x, y, z, weight)
@@ -502,7 +516,11 @@ namespace cmmcore {
                 _aabb.expand(p.to_vec3());
             }
         }
-
+        AABB &bbox()
+        {
+            rebuildAABB();
+            return _aabb;
+        }
 
     };
 
@@ -532,6 +550,7 @@ namespace cmmcore {
     class NURBSSurface
     {
     public:
+        AABB _aabb{};
         NURBSSurface() = default;
 
         NURBSSurface(const std::vector<std::vector<vec4> > &control_points, const std::array<int, 2> &degree,
@@ -909,6 +928,10 @@ namespace cmmcore {
             auto vmid = 0.5 * (_interval[1][1] + _interval[1][0]);
             subdivide(s11,s12,s21,s22,umid,vmid);
         }
+        const AABB &aabb() const
+        {
+            return _aabb;
+        }
         AABB &bbox() {
 
                 _bbox.min.set(_control_points[0][0].to_vec3());
@@ -1048,7 +1071,7 @@ namespace cmmcore {
         }
     }
 
-    inline void decomposeDirection(NURBSSurface &surf, std::vector<NURBSSurface> &bezierSurfaces, int direction) {
+    inline void decomposeDirection(const NURBSSurface &surf, std::vector<NURBSSurface> &bezierSurfaces, int direction) {
         //std::vector<double>::iterator knots_it =iterate_unique_knots(_knots_u,_degree[0]);
         assert(direction==0||direction==1);
         NURBSSurface temp = surf;
@@ -1081,12 +1104,45 @@ namespace cmmcore {
         }
     }
 
-    inline void decompose(NURBSSurface &surf, std::vector<NURBSSurface> &bezierSurfaces) {
+    inline void decompose(const NURBSSurface &surf, std::vector<NURBSSurface> &bezierSurfaces) {
         std::vector<NURBSSurface> bezierSurfaces1;
         decomposeDirection(surf, bezierSurfaces1, 0);
         for (auto &item: bezierSurfaces1) {
             decomposeDirection(item, bezierSurfaces, 1);
         }
+    }
+    // Function to decompose a NURBS curve into Bezier curves
+    inline void decompose(const NURBSCurve &curve, std::vector<NURBSCurve> &bezierCurves) {
+        // Ensure that the curve is valid for decomposition
+        //assert(!curve.knots.empty());
+        //assert(curve._degree >= 1);
+
+
+        // Create a temporary copy of the curve to perform splits
+        NURBSCurve temp = curve;
+        temp.update_interval();
+
+
+        // Extract unique knots from the knot vector
+        std::vector<double> unique_knots;
+        uniqueKnots(temp.knots, unique_knots);
+
+        // Iterate over the unique knots, excluding the first and last
+        for (size_t i = 1; i < unique_knots.size() - 1; ++i) {
+            double knot = unique_knots[i];
+
+            // Split the curve at the current knot
+            auto [first, second] = temp.split(knot);
+
+            // Add the first segment to the Bezier curves list
+            bezierCurves.push_back(first);
+
+            // Continue with the second segment for further splitting
+            temp = second;
+        }
+
+        // Add the final segment to the Bezier curves list
+        bezierCurves.push_back(temp);
     }
 
     /**

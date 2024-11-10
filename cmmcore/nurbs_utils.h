@@ -20,8 +20,13 @@
 namespace cmmcore {
     // Static definition of this parameter allows internal variables of service functions to be allocated on the stack,
     // which critically affects performance. Can be overridden at compile time .
-    #define CMMCORE_MAX_DEGREE 4
+#ifndef CMMCORE_MAX_DEGREE
+
+    #define CMMCORE_MAX_DEGREE 8
+#endif
+
     constexpr size_t CMMCORE_DEG_STACK_SIZE= CMMCORE_MAX_DEGREE + 1;
+
     /**
      * @brief Determine the knot span index for a given parameter value `u`.
      *
