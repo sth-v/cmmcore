@@ -9,9 +9,7 @@
 #include <functional>
 #include <cmath>
 #include <algorithm>
-#include <numeric>
-#include <limits>
-#include <iostream>
+
 #include "vec.h"
 namespace cmmcore{
 
@@ -19,19 +17,21 @@ namespace cmmcore{
 
 
 // KD-Tree Node structure
+template<typename PT>
 struct KDNode {
-    vec3 point;
+    PT point;
+    //size_t index; // Index of the point in the original point list
     int axis; // 0: x, 1: y, 2: z
     KDNode* left;
     KDNode* right;
 
-    KDNode(const vec3& pt, int ax) : point(pt), axis(ax), left(nullptr), right(nullptr) {}
+    KDNode(const PT& pt, int ax) : point(pt), axis(ax), left(nullptr), right(nullptr) {}
 };
 
 // Comparator for sorting points based on a specific axis
-struct PointComparator {
+struct PointComparator3D {
     int axis;
-    PointComparator(int ax) : axis(ax) {}
+    PointComparator3D(int ax) : axis(ax) {}
     bool operator()(const vec3& a, const vec3& b) const {
         if (axis == 0) return a.x < b.x;
         if (axis == 1) return a.y < b.y;
@@ -40,13 +40,15 @@ struct PointComparator {
 };
 
 // KD-Tree Class
-class KDTree3D {
+template<typename PT, typename Comparator>
+class KDTree {
+    using node_type=KDNode<PT>;
 private:
-    KDNode* root;
+    node_type* root;
     size_t size_;
 
     // Recursive function to build KD-Tree
-    KDNode* buildKDTree(std::vector<vec3>::iterator begin, std::vector<vec3>::iterator end, int depth) {
+    node_type* buildKDTree(typename std::vector<PT>::iterator begin, typename std::vector<PT>::iterator end, int depth) {
         if (begin >= end)
             return nullptr;
 
@@ -55,20 +57,20 @@ private:
         auto mid = begin + len / 2;
 
         // Partially sort the points to find the median on current axis
-        nth_element(begin, mid, end, PointComparator(axis));
+        std::nth_element(begin, mid, end, Comparator(axis));
 
         // Create node and construct subtrees
-        KDNode* node = new KDNode(*mid, axis);
+        node_type* node = new KDNode(*mid, axis);
         node->left = buildKDTree(begin, mid, depth + 1);
         node->right = buildKDTree(mid + 1, end, depth + 1);
         return node;
     }
 
     // Recursive function to insert a point into the KD-Tree
-    KDNode* insertRec(KDNode* node, const vec3& point, int depth) {
+    node_type* insertRec(node_type* node, const PT& point, int depth) {
         if (node == nullptr) {
             size_++;
-            return new KDNode(point, depth % 3);
+            return new node_type(point, depth % 3);
         }
 
         int axis = node->axis;
@@ -84,7 +86,7 @@ private:
     }
 
     // Recursive function for range search
-    void rangeSearchRec(KDNode* node, const vec3& lower, const vec3& upper, std::vector<vec3>& result) const {
+    void rangeSearchRec(node_type* node, const PT& lower, const PT& upper, std::vector<PT>& result) const {
         if (node == nullptr)
             return;
 
@@ -110,7 +112,7 @@ private:
     }
 
     // Recursive function for nearest neighbor search
-    void nearestNeighborRec(KDNode* node, const vec3& target, vec3& best, double& bestDistSq) const {
+    void nearestNeighborRec(node_type* node, const PT& target, PT& best, double& bestDistSq) const {
         if (node == nullptr)
             return;
 
@@ -121,8 +123,8 @@ private:
         }
 
         int axis = node->axis;
-        KDNode* nearChild = nullptr;
-        KDNode* farChild = nullptr;
+        node_type* nearChild = nullptr;
+        node_type* farChild = nullptr;
 
         if ((axis == 0 && target.x < node->point.x) ||
             (axis == 1 && target.y < node->point.y) ||
@@ -149,7 +151,7 @@ private:
     }
 
     // Recursive function to delete the KD-Tree
-    void deleteKDTree(KDNode* node) {
+    void deleteKDTree(node_type* node) {
         if (node == nullptr)
             return;
         deleteKDTree(node->left);
@@ -159,38 +161,38 @@ private:
 
 public:
     // Constructor
-    KDTree3D() : root(nullptr), size_(0) {}
+    KDTree() : root(nullptr), size_(0) {}
 
     // Destructor
-    ~KDTree3D() {
+    ~KDTree() {
         deleteKDTree(root);
     }
 
     // Build the KD-Tree from a list of points
-    void build(std::vector<vec3>& points) {
+    void build(std::vector<PT>& points) {
         deleteKDTree(root); // Clean existing tree
         size_ = points.size();
         root = buildKDTree(points.begin(), points.end(), 0);
     }
 
     // Insert a new point into the KD-Tree
-    void insert(const vec3& point) {
+    void insert(const PT& point) {
         root = insertRec(root, point, 0);
     }
 
     // Perform a range search within the bounding box defined by lower and upper points
-    std::vector<vec3> rangeSearch(const vec3& lower, const vec3& upper) const {
-        std::vector<vec3> result;
+    std::vector<PT> rangeSearch(const PT& lower, const PT& upper) const {
+        std::vector<PT> result;
         rangeSearchRec(root, lower, upper, result);
         return result;
     }
 
     // Find the nearest neighbor to the target point
-    vec3 nearestNeighbor(const vec3& target) const {
+    PT nearestNeighbor(const PT& target) const {
         if (root == nullptr)
             throw std::runtime_error("KD-Tree is empty!");
 
-        vec3 best = root->point;
+        PT best = root->point;
         double bestDistSq = target.distanceSq(best);
         nearestNeighborRec(root, target, best, bestDistSq);
         return best;
@@ -207,11 +209,11 @@ public:
     }
 };
 
-// Utility function to print a vec3
+// Utility function to print a PT
 void printPoint(const vec3& p) {
     std::cout << "(" << p.x << ", " << p.y << ", " << p.z << ")";
 }
-
+    typedef KDTree<vec3,PointComparator3D> KDTree3D;
 
 }
 #endif //CMMCORE_KDTREE_H
