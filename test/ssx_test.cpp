@@ -8,15 +8,15 @@ inline void printInter(cmmcore::Intersection& ixs) {
     printf("Intersection:\n");
     printf("[");
     for (int i=0; i<ixs.patches.size(); i++) {
-        printf("[[");
-        for (auto& pt :ixs.patches[i].s1.control_points_flat3d()) {
-            printf("[%f,%f,%f],", pt.x,pt.y,pt.z);
-        }
-        printf("],[");
-        for (auto& pt :ixs.patches[i].s2.control_points_flat3d()) {
-            printf("[%f,%f,%f],", pt.x,pt.y,pt.z);
-        }
-        printf("]],");
+        //printf("[[");
+        //for (auto& pt :ixs.patches[i].s1.control_points_flat3d()) {
+        //    printf("[%f,%f,%f],", pt.x,pt.y,pt.z);
+        //}
+        //printf("],[");
+        //for (auto& pt :ixs.patches[i].s2.control_points_flat3d()) {
+        //    printf("[%f,%f,%f],", pt.x,pt.y,pt.z);
+        //}
+        //printf("]],");
     }
     printf("]\n");
     printf("[");

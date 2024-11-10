@@ -30,12 +30,12 @@ namespace cmmcore
 
     struct PatchIntersection
     {
-        NURBSSurface s1, s2;
+        //NURBSSurface s1, s2;
         IntersectionPoint start, end;
         PatchIntersection() = default;
 
-        PatchIntersection(const NURBSSurface& _s1, const NURBSSurface& _s2, const IntersectionPoint& a,
-                          const IntersectionPoint& b): s1(_s1), s2(_s2), start(a), end(b)
+        PatchIntersection( const IntersectionPoint& a,
+                          const IntersectionPoint& b):  start(a), end(b)
         {
         }
     };
@@ -43,7 +43,6 @@ namespace cmmcore
     struct Intersection
     {
         std::vector<PatchIntersection> patches{};
-
         std::vector<PointIntersection> points{};
         Intersection() = default;
     };
@@ -56,7 +55,7 @@ namespace cmmcore
         find_boundary_intersections(surface1, surface2, ixs, tol);
         if (ixs.size() >= 2)
         {
-            intersection.patches.emplace_back(surface1, surface2, ixs[0], ixs[1]);
+            intersection.patches.emplace_back(ixs[0], ixs[1]);
         }
 
         else
@@ -160,7 +159,6 @@ namespace cmmcore
 #endif
             processSimpleSurfaceIntersection(surface1, surface2, tol, intersection);
 
-
             return;
         }
 
@@ -183,61 +181,6 @@ namespace cmmcore
         }
     }
 
-
-    inline void find_start_points(NURBSSurface& surface1, NURBSSurface& surface2, const double tol,
-                                  std::vector<IntersectionPoint>& intersectionPoints)
-    {
-        std::vector<cmmcore::NURBSSurface> surfs;
-        std::vector<cmmcore::NURBSSurface> surfs2;
-
-
-        cmmcore::decompose(surface1, surfs);
-        cmmcore::decompose(surface2, surfs2);
-
-        std::vector<cmmcore::NURBSSurface> g1;
-        std::vector<cmmcore::NURBSSurface> g2;
-
-
-        for (size_t i = 0; i < surfs.size(); i++)
-        {
-            //surfs[i].bbox();
-            g1.push_back(cmmcore::gaussMap(surfs[i]));
-            //g1[i].bbox();
-        }
-        for (size_t i = 0; i < surfs2.size(); i++)
-        {
-            //surfs2[i].bbox();
-            g2.push_back(cmmcore::gaussMap(surfs2[i]));
-            //g2[i].bbox();
-        }
-
-        for (size_t i = 0; i < surfs.size(); i++)
-        {
-            for (size_t j = 0; j < surfs2.size(); j++)
-            {
-                cmmcore::Intersection intersection;
-
-                cmmcore::detectIntersections(surfs[i],
-                                             surfs2[j],
-                                             g1[i],
-                                             g2[j],
-                                             tol,
-                                             intersection);
-                //intersectionPoints.reserve(intersectionPoints.size()+intersection.patches.size()*2);
-                if (intersection.patches.empty())
-                {
-                    continue;
-                }
-
-                for (auto& patche : intersection.patches)
-                {
-                    processSimpleSurfaceIntersection(patche.s1, patche.s2, tol, intersection);
-
-                    //find_boundary_intersections(patche.s1, patche.s2, intersectionPoints,tol);
-                }
-            }
-        }
-    }
 
     inline void detectAllInts(const NURBSSurface& ns1, const NURBSSurface& ns2, const double tol,
                               cmmcore::Intersection& intersection)
