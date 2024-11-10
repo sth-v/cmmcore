@@ -192,3 +192,11 @@ kdtree_test = executable('kdtree_test',
 )
 test('kdtree_test',
      kdtree_test)
+# ssx_test_2
+ssx_test_2 = executable('ssx_test_2',
+                        'ssx_test_2.cpp',
+                        include_directories : my_inc,
+                        install : false
+)
+test('ssx_test_2',
+     ssx_test_2)

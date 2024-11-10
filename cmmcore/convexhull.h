@@ -52,7 +52,7 @@ namespace cmmcore {
             return ConvexHullResult::EMPTY;
         }
         std::vector<vec2> pts = pts1;
-        pts1hull = std::move(convex_hull2d(pts));
+        pts1hull = convex_hull2d(pts);
 
         switch (pts1hull.size()) {
             case 1: return ConvexHullResult::POINT;

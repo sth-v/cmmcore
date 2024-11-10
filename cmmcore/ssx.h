@@ -53,9 +53,10 @@ namespace cmmcore
         std::vector<IntersectionPoint> ixs;
         //printf("OOO\n");
         find_boundary_intersections(surface1, surface2, ixs, tol);
-        if (ixs.size() >= 2)
+        auto n=ixs.size() ;
+        if (n >= 2)
         {
-            intersection.patches.emplace_back(ixs[0], ixs[1]);
+            intersection.patches.emplace_back(ixs[0], ixs[n-1]);
         }
 
         else

@@ -1,6 +1,6 @@
 #ifndef CMMCORE_BOUNDARY_INTERSECTION_H
 #define CMMCORE_BOUNDARY_INTERSECTION_H
-
+#include "cmmcore.h"
 #include "nurbs.h" // For NURBS classes
 #include <vector>
 #include <array>
@@ -15,22 +15,19 @@
 
 namespace cmmcore {
 
-// Forward declarations
-class NURBSCurve;
-class NURBSSurface;
 
 /**
  * Extract an isocurve from a NURBS surface at a given parameter in the u or v direction
  */
-NURBSCurve extract_isocurve(const NURBSSurface& surface, double param, const std::string& direction = "u") {
+inline NURBSCurve extract_isocurve(const NURBSSurface& surface, const double param, const SurfaceParameter direction = SurfaceParameter::U) {
 
-    if (direction != "u" && direction != "v") {
+    if (direction != SurfaceParameter::U && direction != SurfaceParameter::V) {
         throw std::invalid_argument("Direction must be either 'u' or 'v'.");
     }
 
     auto interval = surface.interval();
     
-    if (direction == "u") {
+    if (direction == SurfaceParameter::U) {
         // For u-direction: we fix u and vary v
         auto param_range = interval[0];  // u range
         if (param < param_range[0] || param > param_range[1]) {
@@ -40,9 +37,9 @@ NURBSCurve extract_isocurve(const NURBSSurface& surface, double param, const std
         }
 
         // Find span and basis functions in u direction
-        int n_u = surface._size[0] - 1;
-        int degree_u = surface._degree[0];
-        int span = find_span(n_u, degree_u, param,  surface._knots_u, false);
+        const int n_u = surface._size[0] - 1;
+        const int degree_u = surface._degree[0];
+        const int span = find_span(n_u, degree_u, param,  surface._knots_u, false);
         std::array<double,CMMCORE_DEG_STACK_SIZE> basis{};
         basis_funs(span, param, degree_u, surface._knots_u, basis);
 
@@ -108,14 +105,16 @@ NURBSCurve extract_isocurve(const NURBSSurface& surface, double param, const std
  */
 inline void extract_surface_boundaries(const NURBSSurface& surface, std::array<NURBSCurve,4> &result) {
     auto& interval = surface._interval;
-    double u_min = interval[0][0], u_max = interval[0][1];
-    double v_min = interval[1][0], v_max = interval[1][1];
+    const double u_min = interval[0][0];
+    const double u_max = interval[0][1];
+    const double v_min = interval[1][0];
+    const double v_max = interval[1][1];
     
     // Extract iso-curves at the boundaries
-    result[0] = std::move(extract_isocurve(surface, u_min, "u"));  // v-direction curve at u=0
-      result[1] = std::move(extract_isocurve(surface, u_max, "u"));  // v-direction curve at u=1
-     result[2]= std::move(extract_isocurve(surface, v_min, "v"));  // u-direction curve at v=0
-     result[3] = std::move(extract_isocurve(surface, v_max, "v"));  // u-direction curve at v=1
+    result[0] = extract_isocurve(surface, u_min, SurfaceParameter::U);  // v-direction curve at u=0
+      result[1] = extract_isocurve(surface, u_max, SurfaceParameter::U);  // v-direction curve at u=1
+     result[2]= extract_isocurve(surface, v_min, SurfaceParameter::V);  // u-direction curve at v=0
+     result[3] = extract_isocurve(surface, v_max, SurfaceParameter::V);  // u-direction curve at v=1
     
 
 }
@@ -125,14 +124,16 @@ inline void extract_surface_boundaries(const NURBSSurface& surface, std::array<N
  */
 struct IntersectionPoint {
 
-    vec3 point;
-    double curve_param;
-    std::array<double, 2> surface_params;
-    std::array<double, 2> surface1_params;
-    std::array<double, 2> surface2_params;
-    int boundary_index;
-    bool is_from_first_surface;
-    std::array<std::array<double, 2>, 2> interval;
+    vec3 point{};
+    double curve_param{};
+    std::array<double, 2> surface_params{};
+    std::array<double, 2> surface1_params{};
+    std::array<double, 2> surface2_params{};
+    int boundary_index =-1;
+    bool is_from_first_surface=false;
+    std::array<std::array<double, 2>, 2> interval={};
+    IntersectionPoint()=default;
+
     IntersectionPoint(const vec3& point, 
                      double curve_param,
                      const std::array<double, 2>& surface_params,
@@ -155,15 +156,7 @@ struct IntersectionPoint {
             surface2_params = boundary_index_to_params(boundary_index, curve_param);
         }
     }
-    IntersectionPoint(const IntersectionPoint& other)     : point(other.point)
-        , curve_param(other.curve_param)
-        , surface_params(other.surface_params)
-        , boundary_index(other.boundary_index)
-        , is_from_first_surface(other.is_from_first_surface)
-        , interval(other.interval),surface1_params(other.surface1_params),surface2_params(other.surface2_params)
-    {
-
-    }
+    IntersectionPoint(const IntersectionPoint& other)    = default;
     std::pair<std::array<double, 2>, std::array<double, 2>> get_start_params() const {
         if (is_from_first_surface) {
             // For first surface, convert boundary index to fixed parameter

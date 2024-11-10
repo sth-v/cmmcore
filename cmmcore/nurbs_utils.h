@@ -16,7 +16,12 @@
 
 
 #include <cstring>
-
+#if (defined(__clang__) && __has_extension(c_variable_length_arrays)) || \
+(defined(__GNUC__) && !defined(__clang__) && (__GNUC__ >= 4) && (__GNUC_MINOR__ >= 9))
+    #define VLA_SUPPORTED 1
+#else
+    #define VLA_SUPPORTED 0
+#endif
 namespace cmmcore {
     // Static definition of this parameter allows internal variables of service functions to be allocated on the stack,
     // which critically affects performance. Can be overridden at compile time .
@@ -660,7 +665,12 @@ namespace cmmcore {
         std::copy(ctrlpts.begin() + (span - s), ctrlpts.end(), ctrlpts_new.begin() + (span - s + num));
 
         // Temporary storage for control points
+#if VLA_SUPPORTED
         vec4 temp[degree + 1];
+#else
+        vec4 temp[CMMCORE_DEG_STACK_SIZE];
+#endif
+        ;
         std::copy(ctrlpts.begin() + (span - degree), ctrlpts.begin() + (span - degree + degree - s + 1), temp);
         size_t L;
         for (size_t j = 1; j <= num; ++j) {

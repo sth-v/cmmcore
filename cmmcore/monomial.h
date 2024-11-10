@@ -5,24 +5,14 @@
 #ifndef MONOMIAL_H
 #define MONOMIAL_H
 
-#ifdef CYTHON_ABI
+#include "cmmcore.h"
 #include "vec.h"
 #include "matrix.h"
 #include "binom.h"
-#else
-#include "cmmcore/vec.h"
-#include "cmmcore/matrix.h"
-#include "cmmcore/binom.h"
-#include "cmmcore/nurbs.h"
-#endif
+#include "nurbs.h"
 
 namespace cmmcore
 {
-    enum class SurfaceParameter
-    {
-        U,
-        V
-    };
 
 
     inline Matrix bpmat(int n)
