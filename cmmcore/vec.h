@@ -27,7 +27,7 @@ SOFTWARE.
 #include <limits>
 #include <iostream>
 #include <array>
-
+#include <math.h>
 #include <cstddef>
 #include <iomanip>
 #include <random>
@@ -445,6 +445,28 @@ struct vec3 {
 
 };
 
+  inline  void vectorProjection(const vec3&a, const vec3&b,vec3& result)
+  {
+    const double x0 = pow(b.x, 2);
+    const double x1 = pow(b.y, 2);
+    const double x2 = pow(b.z, 2);
+    const double x3 = 1.0/(x0 + x1 + x2);
+    const double x4 = a.y*x3;
+    const double x5 = b.x*b.y;
+    const double x6 = a.z*x3;
+    const double x7 = b.z*x6;
+    const double x8 = a.x*x3;
+    result.x = b.x*x7 + x0*x8 + x4*x5;
+    result.y = b.y*x7 + x1*x4 + x5*x8;
+    result.z = b.x*b.z*x8 + b.y*b.z*x4 + x2*x6;
+  }
+
+  inline vec3 vectorProjection(const vec3&a, const vec3&b)
+  {
+    vec3 result;
+    vectorProjection(a,b,result);
+    return result;
+  }
 
   struct Vec2Hash {
     size_t operator()(const vec2& v) const {

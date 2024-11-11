@@ -15,9 +15,9 @@ namespace cmmcore
 {
 
 
-    inline Matrix bpmat(int n)
+    inline MatrixD bpmat(int n)
     {
-        Matrix result(n + 1, n + 1);
+        MatrixD result(n + 1, n + 1);
         for (int j = 0; j <= n; ++j)
         {
             for (int k = 0; k <= j; ++k)
@@ -34,7 +34,7 @@ namespace cmmcore
 #define CMMCORE_RESIZE_TENSOR2D(var,n,m,typ,...) var.resize(n, std::vector<typ>(m, {__VA_ARGS__}))
 
     template <typename T>
-    inline void getVectorTensor2DComponent(Tensor2D<T>& arr, int component, Matrix& result)
+    inline void getVectorTensor2DComponent(Tensor2D<T>& arr, int component, MatrixD& result)
     {
         result.rows = arr.size();
         result.cols = arr[0].size();
@@ -49,7 +49,7 @@ namespace cmmcore
     }
 
     template <typename T>
-    inline void setVectorTensor2DComponent(Tensor2D<T>& arr, int component, const Matrix& value)
+    inline void setVectorTensor2DComponent(Tensor2D<T>& arr, int component, const MatrixD& value)
     {
         for (int i = 0; i < arr.size(); ++i)
         {
@@ -140,7 +140,7 @@ namespace cmmcore
         int n = 0;
         int m = 0;
         Tensor2D<vec3> coefficients{};
-        Matrix Mu, Mv, Mu_inv, Mv_inv;
+        MatrixD Mu, Mv, Mu_inv, Mv_inv;
 
         Monomial2D() = default;
 
@@ -178,10 +178,10 @@ namespace cmmcore
                                               Mv_inv(Mv.inverse())
         {
             Tensor2D<vec3> cpts = surf.control_points3d();
-            Matrix MvT = Mv.transpose();
+            MatrixD MvT = Mv.transpose();
             for (int i = 0; i < 3; ++i)
             {
-                Matrix cfs(n, m);
+                MatrixD cfs(n, m);
                 getVectorTensor2DComponent<vec3>(cpts, i, cfs);
                 setVectorTensor2DComponent<vec3>(coefficients, i, Mu * cfs * MvT);
                 // Mu @ control_points[:, :, d] @ Mv.T
@@ -213,10 +213,10 @@ namespace cmmcore
             control_points[:, :, d] = Mu_inv @ monomial_coeffs[:, :, d] @ Mv_inv.T*/
 
             CMMCORE_RESIZE_TENSOR2D(surf._control_points, n, m, vec4, 0, 0, 0, 1);
-            Matrix Mv_inv_T = Mv_inv.transpose();
+            MatrixD Mv_inv_T = Mv_inv.transpose();
             for (int i = 0; i < 3; ++i)
             {
-                Matrix cfs(n, m);
+                MatrixD cfs(n, m);
                 getVectorTensor2DComponent<vec3>(coefficients, i, cfs);
                 setVectorTensor2DComponent<vec4>(surf._control_points, i, Mu_inv * cfs * Mv_inv_T);
             }

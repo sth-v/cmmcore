@@ -157,7 +157,7 @@ inline vec3 closestPointOnSimplex(const std::vector<vec3>& simplex) {
         return simplex[0];
     } else if (simplex.size() == 2) {
         // Line segment case
-        return closestPointOnLine(simplex[1], simplex[0]);
+        return closestPointOnSegm(simplex[1], simplex[0]);
     } else if (simplex.size() == 3) {
         // Triangle case
         return closestPointOnTriangle(simplex[2], simplex[1], simplex[0]);

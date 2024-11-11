@@ -8,9 +8,80 @@
 #include "cmmcore/nurbs.h"
 #include "cmmcore/gauss_map.h"
 #include "cmmcore/boundary_intersection.h"
+#include "cmmcore/point_inversion.h"
 
 namespace cmmcore
 {
+    namespace ssx_utils
+    {
+        inline bool improve_uv(const vec3& du, const vec3& dv, const vec3& delta, vec2& result)
+        {
+            Matrix2x2 mat[3]{
+                {
+                    {du.x, dv.x},
+                    {du.y, dv.y}
+                },
+                {
+                    {du.x, dv.x},
+                    {du.z, dv.z}
+                },
+                {
+
+                    {du.y, dv.y},
+                    {du.z, dv.z}
+                }
+            };
+            double dett = std::numeric_limits<double>::min();
+            double temp;
+            size_t n = -1;
+
+            double y[3][2] = {
+                {delta.x, delta.y},
+                {delta.x, delta.z},
+                {delta.y, delta.z}
+            };
+            for (size_t i = 0; i < 3; ++i)
+            {
+                temp = mat[i].det();
+                if (temp > dett)
+                {
+                    dett = temp;
+                    n = i;
+                }
+            }
+            if (n == -1)
+            {
+                return false;
+            }
+            if (std::abs(dett) <= CMMCORE_NUMERIC_EPSILON_DOUBLE)
+            {
+                return false;
+            }
+            result.x = (y[n][0] * mat[n][1][1] - mat[n][0][1] * y[n][1]) / dett;
+            result.y = (mat[n][0][0] * y[n][1] - y[n][0] * mat[n][1][0]) / dett;
+            return true;
+        }
+    }
+
+    inline void improve_uv_robust(
+        const NURBSSurface& surf,
+        const vec2& uv_old,
+        const vec3& du,
+        const vec3& dv,
+        const vec3& xyz_old,
+        const vec3& xyz_new,
+        vec2& uv_new,
+        double tol = 1e-7, size_t max_iter = 100)
+    {
+        auto delta = xyz_new - xyz_old;
+        if (ssx_utils::improve_uv(du, dv, delta, uv_new))
+        {
+            uv_new += uv_old;
+        }
+
+        uv_new.set(point_inversion_surface(surf, xyz_new, uv_old.x, uv_old.y, tol, tol, max_iter));
+    }
+
     static int counter = 0;
     using UnorderedSetPairDouble = std::unordered_set<
         std::pair<double, double>, _hashimpl::PairDoubleHash, _hashimpl::PairDoubleEqual>;
@@ -34,8 +105,8 @@ namespace cmmcore
         IntersectionPoint start, end;
         PatchIntersection() = default;
 
-        PatchIntersection( const IntersectionPoint& a,
-                          const IntersectionPoint& b):  start(a), end(b)
+        PatchIntersection(const IntersectionPoint& a,
+                          const IntersectionPoint& b): start(a), end(b)
         {
         }
     };
@@ -53,10 +124,10 @@ namespace cmmcore
         std::vector<IntersectionPoint> ixs;
         //printf("OOO\n");
         find_boundary_intersections(surface1, surface2, ixs, tol);
-        auto n=ixs.size() ;
+        auto n = ixs.size();
         if (n >= 2)
         {
-            intersection.patches.emplace_back(ixs[0], ixs[n-1]);
+            intersection.patches.emplace_back(ixs[0], ixs[n - 1]);
         }
 
         else
@@ -83,6 +154,7 @@ namespace cmmcore
         }
     }
 
+    //
     inline void detectIntersections(NURBSSurface& surface1, NURBSSurface& surface2, NURBSSurface& gaussMap1,
                                     NURBSSurface& gaussMap2, const double tol, Intersection& intersection,
                                     int depth = 0)
@@ -182,9 +254,10 @@ namespace cmmcore
         }
     }
 
-
-    inline void detectAllInts(const NURBSSurface& ns1, const NURBSSurface& ns2, const double tol,
-                              cmmcore::Intersection& intersection)
+    // Finds at least one point on each intersection branch (usually much more).
+    // Used primarily for obtaining the start points of the marching method
+    inline void findStartIntersectionPoints(const NURBSSurface& ns1, const NURBSSurface& ns2, const double tol,
+                                            cmmcore::Intersection& intersection)
     {
         std::vector<cmmcore::NURBSSurface> surfs;
         std::vector<cmmcore::NURBSSurface> surfs2;

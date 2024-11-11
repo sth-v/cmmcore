@@ -60,7 +60,7 @@ int main() {
     cmmcore::NURBSSurface ns1(pts1,deg1);
     cmmcore::NURBSSurface ns2(pts2,deg2);
     cmmcore::Intersection intersection;
-    detectAllInts(ns1,ns2,1e-3,intersection);
+    findStartIntersectionPoints(ns1,ns2,1e-3,intersection);
     printInter(intersection);
     printInter2(intersection);
 
