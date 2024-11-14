@@ -108,5 +108,40 @@ inline double calc_epsilon(const double x) noexcept {
         }
 
     };
+    // Additional helper function to format real numbers with precision
+    inline std::string formatReal(const double value) {
+        std::ostringstream ss;
+        ss << std::setprecision(15) << value;
+        return ss.str();
+    }
+
+    // Helper function to get the current date and time in ISO format
+    inline std::string getCurrentDateTime() {
+        time_t now = time(0);
+        struct tm tstruct{};
+#if defined(_MSC_VER)
+        localtime_s(&tstruct, &now);
+#else
+        tstruct = *localtime(&now);
+#endif
+        char buf[80];
+        strftime(buf, sizeof(buf), "%Y-%m-%dT%H:%M:%S", &tstruct);
+        return buf;
+    }
+
+    // Helper function to convert a vector to a STEP-formatted string
+    template<typename T>
+    std::string vectorToString(const std::vector<T>& vec) {
+        std::ostringstream ss;
+        ss << "(";
+        for (std::size_t i = 0; i < vec.size(); ++i) {
+            ss << vec[i];
+            if (i < vec.size() - 1)
+                ss << ", ";
+        }
+        ss << ")";
+        return ss.str();
+    }
+
 }
 #endif //UTILS_H

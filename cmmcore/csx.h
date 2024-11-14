@@ -48,7 +48,7 @@ namespace cmmcore {
         CSXIntersections intersections;
 
         bool _is_valid_point(vec3 point, const NURBSCurve& curve, const NURBSSurface& surface,
-                              const Vector<3>& params) {
+                              const Vector<3>& params) const {
             vec3 curve_pt;
 
                 curve.evaluate(params[0], curve_pt);
@@ -151,7 +151,7 @@ namespace cmmcore {
             }
         }
 
-        bool _no_new_intersections(const NURBSCurve &curve, const NURBSSurface &surface) {
+        bool _no_new_intersections(const NURBSCurve &curve, const NURBSSurface &surface) const {
             // Implement separability test
             auto e1=curve.get_control_points3d();
               auto e12=surface.control_points_flat3d();
@@ -205,7 +205,7 @@ namespace cmmcore {
                    (params[2] >= surface_interval[1][0] && params[2] <= surface_interval[1][1]);
         }
 
-        bool _is_degenerate(const Vector<3> &params, const NURBSCurve &curve, const NURBSSurface &surface) {
+        bool _is_degenerate(const Vector<3> &params, const NURBSCurve &curve, const NURBSSurface &surface) const {
             vec3 curve_tangent;
             curve.derivative(params[0], curve_tangent);
             vec3 surface_normal;
@@ -213,13 +213,13 @@ namespace cmmcore {
             return std::abs(curve_tangent.dot(surface_normal)) < tolerance;
         }
     };
-    inline double computePtol(const NURBSCurve &curve,double tolerance)
+    inline double computePtol(const NURBSCurve &curve,const double tolerance)
     {
         return tolerance*(curve._interval[1]-curve._interval[0])/curve.length() ;
 
     }
 
-inline void csx( const NURBSCurve &curve, const NURBSSurface &surface,  CSXIntersections & result,double tol= 1e-3)
+inline void csx( const NURBSCurve &curve, const NURBSSurface &surface,  CSXIntersections & result,const double tol= 1e-3)
 {
     double ptol_=computePtol(curve, tol);
     auto intersector=NURBSCurveSurfaceIntersector(curve,surface, tol,ptol_);
@@ -227,7 +227,7 @@ inline void csx( const NURBSCurve &curve, const NURBSSurface &surface,  CSXInter
 
 
 }
-    inline auto csx( const NURBSCurve &curve, const NURBSSurface &surface,double tol= 1e-3)
+    inline auto csx( const NURBSCurve &curve, const NURBSSurface &surface,const double tol= 1e-3)
     {
 
         double ptol_=computePtol(curve, tol);
