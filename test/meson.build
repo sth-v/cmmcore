@@ -200,3 +200,11 @@ ssx_test_2 = executable('ssx_test_2',
 )
 test('ssx_test_2',
      ssx_test_2)
+# step_test
+step_test = executable('step_test',
+                       'step_test.cpp',
+                       include_directories : my_inc,
+                       install : false
+)
+test('step_test',
+     step_test)
