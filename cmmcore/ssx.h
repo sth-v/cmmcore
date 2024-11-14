@@ -12,7 +12,7 @@
 
 namespace cmmcore
 {
-    namespace ssx_utils
+    namespace ssx_helpers
     {
         inline bool improve_uv(const vec3& du, const vec3& dv, const vec3& delta, vec2& result)
         {
@@ -74,7 +74,7 @@ namespace cmmcore
         double tol = 1e-7, size_t max_iter = 100)
     {
         auto delta = xyz_new - xyz_old;
-        if (ssx_utils::improve_uv(du, dv, delta, uv_new))
+        if (ssx_helpers::improve_uv(du, dv, delta, uv_new))
         {
             uv_new += uv_old;
         }
@@ -257,14 +257,14 @@ namespace cmmcore
     // Finds at least one point on each intersection branch (usually much more).
     // Used primarily for obtaining the start points of the marching method
     inline void findStartIntersectionPoints(const NURBSSurface& ns1, const NURBSSurface& ns2, const double tol,
-                                            cmmcore::Intersection& intersection)
+                                            Intersection& intersection)
     {
-        std::vector<cmmcore::NURBSSurface> surfs;
-        std::vector<cmmcore::NURBSSurface> surfs2;
+        std::vector<NURBSSurface> surfs;
+        std::vector<NURBSSurface> surfs2;
 
 
-        cmmcore::decompose(ns1, surfs);
-        cmmcore::decompose(ns2, surfs2);
+        ns1.decompose(surfs);
+        ns2.decompose( surfs2);
 
         std::vector<cmmcore::NURBSSurface> g1;
         std::vector<cmmcore::NURBSSurface> g2;
@@ -287,7 +287,7 @@ namespace cmmcore
         {
             for (size_t j = 0; j < surfs2.size(); j++)
             {
-                cmmcore::detectIntersections(surfs[i],
+                detectIntersections(surfs[i],
                                              surfs2[j],
                                              g1[i],
                                              g2[j],

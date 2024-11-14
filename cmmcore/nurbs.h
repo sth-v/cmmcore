@@ -12,7 +12,21 @@
 #include <numeric>
 #include <cassert>
 #include <unordered_set>
+#include <fstream>
+#include <sstream>
+#include <iomanip>
+#include <ctime>
+#include <fstream>
+#include <sstream>
+#include <iomanip>
+#include <ctime>
 
+
+
+#include <fstream>
+#include <sstream>
+#include <iomanip>
+#include <ctime>
 #ifdef CYTHON_ABI
 #include "nurbs_utils.h"
 #include "utils.h"
@@ -24,10 +38,37 @@
 
 #endif
 
+#include "cmmcore.h"
 #include "integrate.h"
 namespace cmmcore {
-
 #define CMMCORE_NURBS_INTEGRATION_TOL 1e-3
+
+namespace nurbs_helpers {
+
+    inline void flipControlPointsU(const std::vector<std::vector<vec4>> &cpts,std::vector<std::vector<vec4>> &result )
+
+    {
+        size_t size_u=cpts.size();
+        size_t size_v=cpts[0].size();
+        result.clear();
+
+
+        for (size_t i = 0; i <  size_v; i++) {
+            std::vector<vec4> new_row{};
+            for (size_t j = 0; j < size_u; j++) {
+                new_row.push_back(cpts[j][i]);
+
+
+            }
+            result.push_back(new_row);
+
+        }
+
+
+    }
+
+}
+
     class NURBSCurve
     {
 
@@ -321,7 +362,7 @@ namespace cmmcore {
         }
 
 
-         double length(const double t0, const double t1, const double tol=CMMCORE_NURBS_INTEGRATION_TOL )const
+        double length(const double t0, const double t1, const double tol=CMMCORE_NURBS_INTEGRATION_TOL )const
         {
             double result = 0.0;
             double error = 0.0;
@@ -335,15 +376,15 @@ namespace cmmcore {
 
 
         }
-         double length(const double t, const double tol=CMMCORE_NURBS_INTEGRATION_TOL) const
+        double length(const double t, const double tol=CMMCORE_NURBS_INTEGRATION_TOL) const
         {
             return length(_interval[0],t, tol);
         }
-         double length( ) const
+        double length( ) const
         {
             return length(_interval[0],_interval[1], CMMCORE_NURBS_INTEGRATION_TOL );
         };
-         double lengthAt(const double l,const double t0,const double initial_guess, const double tol=CMMCORE_NURBS_INTEGRATION_TOL )
+        double lengthAt(const double l,const double t0,const double initial_guess, const double tol=CMMCORE_NURBS_INTEGRATION_TOL )
         {
             vec3 der;
             auto fun = [&](double t)->double {derivative(t,der); return der.length();};
@@ -374,7 +415,7 @@ namespace cmmcore {
 
         }
         void derivative(const double t, std::vector<vec3> &result) const {
-                derivative(t,result,result.size());
+            derivative(t,result,result.size());
         }
         void derivatives(const double t, vec3 &d0, vec3 &d1, vec3 &d2 ) const {
             vec3 temp;
@@ -441,11 +482,11 @@ namespace cmmcore {
         }
 
 
-        std::vector<vec4> get_control_points() const {
+        const std::vector<vec4>& get_control_points() const {
             return control_points;
         }
         std::vector<vec3>& get_control_points3d(std::vector<vec3>& result) const {
-             result.resize(control_points.size());
+            result.resize(control_points.size());
             for (size_t i = 0; i < control_points.size(); ++i)
             {
                 result[i].set(control_points[i].to_vec3());
@@ -461,7 +502,7 @@ namespace cmmcore {
             }
             return result;
         }
-        void set_control_points(std::vector<vec4> &cpts) {
+        void set_control_points(const std::vector<vec4> &cpts) {
             bool change_size = (cpts.size() != control_points.size());
             control_points = std::move(cpts);
             if (change_size) {
@@ -473,16 +514,16 @@ namespace cmmcore {
             }
         }
 
-        int get_degree() {
+        int get_degree() const {
             return _degree;
         }
 
-        void set_degree(int val) {
+        void set_degree(const int val) {
             _degree = val;
             update_interval();
         }
 
-        const std::vector<double> get_knots() {
+        const std::vector<double>& get_knots() const  {
             return knots;
         }
 
@@ -491,14 +532,14 @@ namespace cmmcore {
             update_interval();
         }
 
-        const std::array<double, 2> interval() {
+        const std::array<double, 2>& interval() const {
             return _interval;
         }
 
         const AABB &aabb() const
-         {
-             return _aabb;
-         }
+        {
+            return _aabb;
+        }
 
         // Member variables
         std::vector<vec4> control_points{}; // Each control point is (x, y, z, weight)
@@ -522,31 +563,134 @@ namespace cmmcore {
             return _aabb;
         }
 
+        // Function to decompose a NURBS curve into Bezier curves
+        void decompose( std::vector<NURBSCurve> &bezierCurves) const {
+            // Ensure that the curve is valid for decomposition
+            //assert(!curve.knots.empty());
+            //assert(curve._degree >= 1);
+
+
+            // Create a temporary copy of the curve to perform splits
+            NURBSCurve temp = *this;
+            temp.update_interval();
+
+
+            // Extract unique knots from the knot vector
+            std::vector<double> unique_knots;
+            uniqueKnots(temp.knots, unique_knots);
+
+            // Iterate over the unique knots, excluding the first and last
+            for (size_t i = 1; i < unique_knots.size() - 1; ++i) {
+                double knot = unique_knots[i];
+
+                // Split the curve at the current knot
+                auto [first, second] = temp.split(knot);
+
+                // Add the first segment to the Bezier curves list
+                bezierCurves.push_back(first);
+
+                // Continue with the second segment for further splitting
+                temp = second;
+            }
+
+            // Add the final segment to the Bezier curves list
+            bezierCurves.push_back(temp);
+        }
+
+        /**
+             * Join two NURBS curves if they share an endpoint
+             * @param first First curve to join
+             * @param second Second curve to join
+             * @param result The resulting joined curve
+             * @return true if curves were successfully joined, false otherwise
+             */
+        bool join( const NURBSCurve& second, NURBSCurve& result)
+        {
+            // Check if either curve is already closed
+            if (is_periodic() || second.is_periodic())
+            {
+                return false;
+            }
+
+            // Get endpoints of both curves
+            vec3 first_start, first_end, second_start, second_end;
+            evaluate(_interval[0], first_start);
+            evaluate(_interval[1], first_end);
+            second.evaluate(second._interval[0], second_start);
+            second.evaluate(second._interval[1], second_end);
+
+            // Tolerance for endpoint matching
+            constexpr double tol = 1e-10;
+
+            // Check all possible connection combinations
+            bool start_start = first_start.distance(second_start) < tol;
+            bool start_end = first_start.distance(second_end) < tol;
+            bool end_start = first_end.distance(second_start) < tol;
+            bool end_end = first_end.distance(second_end) < tol;
+
+            // If no endpoints match, cannot join
+            if (!start_start && !start_end && !end_start && !end_end)
+            {
+                return false;
+            }
+
+            // Get control points from both curves
+            std::vector<vec4> new_control_points;
+            new_control_points.reserve(control_points.size() + second.control_points.size());
+
+            // Join based on which endpoints match
+            if (end_start)
+            {
+                // Normal case: first end to second start
+                new_control_points =control_points;
+                new_control_points.insert(new_control_points.end(),
+                                          second.control_points.begin(), second.control_points.end());
+            }
+            else if (start_start)
+            {
+                // Reverse first curve
+                new_control_points.insert(new_control_points.end(),
+                                          control_points.rbegin(), control_points.rend());
+                new_control_points.insert(new_control_points.end(),
+                                          second.control_points.begin(), second.control_points.end());
+            }
+            else if (end_end)
+            {
+                // Reverse second curve
+                new_control_points =control_points;
+                new_control_points.insert(new_control_points.end(),
+                                          second.control_points.rbegin(), second.control_points.rend());
+            }
+            else if (start_end)
+            {
+                // Reverse first curve and reverse second curve
+                new_control_points.insert(new_control_points.end(),
+                                          control_points.rbegin(), control_points.rend());
+                new_control_points.insert(new_control_points.end(),
+                                          second.control_points.rbegin(), second.control_points.rend());
+            }
+
+            // If both start and end points match (after potential reversals), make it periodic
+            bool should_be_periodic = false;
+            {
+                vec3 new_start, new_end;
+                vec4 start_pt = new_control_points.front();
+                vec4 end_pt = new_control_points.back();
+                new_start.set(start_pt.x / start_pt.w, start_pt.y / start_pt.w, start_pt.z / start_pt.w);
+                new_end.set(end_pt.x / end_pt.w, end_pt.y / end_pt.w, end_pt.z / end_pt.w);
+                should_be_periodic = new_start.distance(new_end) < tol;
+            }
+
+            // Create result curve
+            result = NURBSCurve(new_control_points, _degree, should_be_periodic);
+            return true;
+        }
     };
 
     // External function declarations
 
-    inline void flipControlPointsU(const std::vector<std::vector<vec4>> &cpts,std::vector<std::vector<vec4>> &result )
-
-    {
-        size_t size_u=cpts.size();
-        size_t size_v=cpts[0].size();
-        result.clear();
 
 
-        for (size_t i = 0; i <  size_v; i++) {
-            std::vector<vec4> new_row{};
-            for (size_t j = 0; j < size_u; j++) {
-                new_row.push_back(cpts[j][i]);
-
-
-            }
-            result.push_back(new_row);
-
-        }
-
-
-    }
     class NURBSSurface
     {
     public:
@@ -600,7 +744,7 @@ namespace cmmcore {
             }
             update_interval();
 
-    }
+        }
         std::array<size_t,2>& shape()
         {
             return _size;
@@ -627,11 +771,11 @@ namespace cmmcore {
         {
             return _knots_v;
         }
-         std::array<std::array<double,2>,2>& interval()
+        std::array<std::array<double,2>,2>& interval()
         {
             return _interval;
         }
-         std::array<std::array<double,2>,2> interval() const
+        std::array<std::array<double,2>,2> interval() const
         {
             return _interval;
         }
@@ -681,7 +825,7 @@ namespace cmmcore {
         }
         void normal(double u,double v, vec3 &result) const
         {
-           vec3 temp1,temp2;
+            vec3 temp1,temp2;
             derivative_u(u,v,temp1);
             derivative_v(u,v,temp2);
             temp1.cross(temp2,result);
@@ -704,7 +848,7 @@ namespace cmmcore {
                     std::vector<vec4> ccu;
                     for (size_t u = 0; u < _size[0]; ++u)
                     {
-                       ccu.push_back(cpts[u*_size[1] +v]);
+                        ccu.push_back(cpts[u*_size[1] +v]);
 
                     }
 
@@ -716,7 +860,7 @@ namespace cmmcore {
 
 
 
-                flipControlPointsU(cpts_tmp, _control_points);
+                nurbs_helpers::flipControlPointsU(cpts_tmp, _control_points);
 
                 _size[0]+=count;
 
@@ -755,7 +899,7 @@ namespace cmmcore {
             if (param <= _interval[0][0] || param >= _interval[0][1] || std::fabs(param - _interval[0][0]) <= tol ||
                 std::fabs(param - _interval[0][1]) <= tol) {
                 throw std::invalid_argument("Cannot split from the domain edge");
-            }
+                }
             int ks = find_span(static_cast<int>(_size[0]-1), _degree[0], param, _knots_u, false) - _degree[0] + 1;
             int s = find_multiplicity(param, _knots_u);
 
@@ -787,7 +931,7 @@ namespace cmmcore {
             if (param <= _interval[1][0] || param >= _interval[1][1] || std::fabs(param - _interval[1][0]) <= tol ||
                 std::fabs(param - _interval[1][1]) <= tol) {
                 throw std::invalid_argument("Cannot split from the domain edge");
-            }
+                }
             int ks = find_span(static_cast<int>(_size[1]-1), _degree[1], param, _knots_v, false) - _degree[1] + 1;
             int s = find_multiplicity(param, _knots_v);
             int r = _degree[1] - s;
@@ -863,9 +1007,9 @@ namespace cmmcore {
             return _control_points;
         }
 
-           std::array<NURBSSurface,4>  subdivide(
+        std::array<NURBSSurface,4>  subdivide(
 
-             ) const {
+          ) const {
 
             double umid=0.5*(_interval[0][1]+_interval[0][0]);
             double vmid=0.5*(_interval[1][1]+_interval[1][0]);
@@ -934,16 +1078,16 @@ namespace cmmcore {
         }
         AABB &bbox() {
 
-                _bbox.min.set(_control_points[0][0].to_vec3());
-                _bbox.max.set(_control_points[0][0].to_vec3());
+            _bbox.min.set(_control_points[0][0].to_vec3());
+            _bbox.max.set(_control_points[0][0].to_vec3());
 
 
-                for (std::size_t i = 0; i < _size[0]; ++i) {
-                    for (std::size_t j = 0; j < _size[1]; ++j) {
-                        auto &pt = _control_points[i][j];
-                        _bbox.expand(pt.to_vec3());
-                    }
+            for (std::size_t i = 0; i < _size[0]; ++i) {
+                for (std::size_t j = 0; j < _size[1]; ++j) {
+                    auto &pt = _control_points[i][j];
+                    _bbox.expand(pt.to_vec3());
                 }
+            }
 
             return _bbox;
         }
@@ -955,7 +1099,7 @@ namespace cmmcore {
         std::vector<double> _knots_u{};
         std::vector<double> _knots_v{};
         AABB _bbox{
-            {0., 0., 0.}, {0., 0., 0.}
+                {0., 0., 0.}, {0., 0., 0.}
         };
 
 
@@ -1025,214 +1169,268 @@ namespace cmmcore {
             get_derivative(direction, result);
             return result;
         }
+
+
+
+
+        // Method 1: Generates STEP entities for the NURBS surface
+        void toSTEP(std::ostream& out, int& entity_id, int surface_id = 0) const {
+            // Map to store control point IDs
+            std::vector<std::vector<int>> cp_ids(_size[0], std::vector<int>(_size[1]));
+
+            // Write CARTESIAN_POINT entities
+            for (std::size_t i = 0; i < _size[0]; ++i) {
+                for (std::size_t j = 0; j < _size[1]; ++j) {
+                    const vec4& cp = _control_points[i][j];
+                    double w = cp.w;
+                    // Dehomogenize the point
+                    double x = cp.x / w;
+                    double y = cp.y / w;
+                    double z = cp.z / w;
+                    int id = entity_id++;
+                    cp_ids[i][j] = id;
+                    out << "#" << id << " = CARTESIAN_POINT('', ("
+                        << formatReal(x) << ", " << formatReal(y) << ", " << formatReal(z) << "));\n";
+                }
+            }
+
+            // Prepare the control points grid string
+            std::stringstream cp_grid_stream;
+            cp_grid_stream << "(";
+            for (std::size_t i = 0; i < _size[0]; ++i) {
+                cp_grid_stream << "(";
+                for (std::size_t j = 0; j < _size[1]; ++j) {
+                    cp_grid_stream << "#" << cp_ids[i][j];
+                    if (j < _size[1] - 1)
+                        cp_grid_stream << ", ";
+                }
+                cp_grid_stream << ")";
+                if (i < _size[0] - 1)
+                    cp_grid_stream << ", ";
+            }
+            cp_grid_stream << ")";
+
+            // Prepare the knot vectors and multiplicities
+            // Knots U
+            std::vector<double> u_unique_knots;
+            std::vector<int> u_multiplicities;
+            getKnotMultiplicities(_knots_u, u_unique_knots, u_multiplicities);
+
+            // Knots V
+            std::vector<double> v_unique_knots;
+            std::vector<int> v_multiplicities;
+            getKnotMultiplicities(_knots_v, v_unique_knots, v_multiplicities);
+
+            // Prepare the knots and multiplicities strings
+            std::string u_knots_str = vectorToString(u_unique_knots);
+            std::string v_knots_str = vectorToString(v_unique_knots);
+            std::string u_mult_str = vectorToString(u_multiplicities);
+            std::string v_mult_str = vectorToString(v_multiplicities);
+
+            // Prepare the weights data
+            std::stringstream weights_stream;
+            weights_stream << "(";
+            for (std::size_t i = 0; i < _size[0]; ++i) {
+                weights_stream << "(";
+                for (std::size_t j = 0; j < _size[1]; ++j) {
+                    double w = _control_points[i][j].w;
+                    weights_stream << formatReal(w);
+                    if (j < _size[1] - 1)
+                        weights_stream << ", ";
+                }
+                weights_stream << ")";
+                if (i < _size[0] - 1)
+                    weights_stream << ", ";
+            }
+            weights_stream << ")";
+
+            // Write the RATIONAL_B_SPLINE_SURFACE_WITH_KNOTS entity
+            int bspline_surface_id = entity_id++;
+            out << "#" << bspline_surface_id << " = RATIONAL_B_SPLINE_SURFACE_WITH_KNOTS('', "
+                << _degree[0] << ", " << _degree[1] << ", "
+                << cp_grid_stream.str() << ", "
+                << ".UNSPECIFIED., .F., .F., .F., "
+                << u_mult_str << ", " << u_knots_str << ", "
+                << v_mult_str << ", " << v_knots_str << ", "
+                << ".UNSPECIFIED., "
+                << weights_stream.str() << ");\n";
+
+            // Create surface geometry (GEOMETRIC_REPRESENTATION_ITEM)
+            int surface_geom_id = bspline_surface_id; // The same as bspline_surface_id
+
+            // Create an ADVANCED_FACE to encapsulate the surface
+            int face_id = entity_id++;
+            out << "#" << face_id << " = ADVANCED_FACE('', (), #"
+                << surface_geom_id << ", .T.);\n";
+
+            // Create CLOSED_SHELL
+            int shell_id = entity_id++;
+            out << "#" << shell_id << " = CLOSED_SHELL('', (#" << face_id << "));\n";
+
+            // Create MANIFOLD_SOLID_BREP
+            int brep_id = entity_id++;
+            out << "#" << brep_id << " = MANIFOLD_SOLID_BREP('', #" << shell_id << ");\n";
+
+            // Create SHAPE_REPRESENTATION
+            int geom_context_id = entity_id++;
+            // Define units and context
+            int length_unit_id = entity_id++;
+            out << "#" << length_unit_id << " = (LENGTH_UNIT() NAMED_UNIT(*) SI_UNIT(.MILLI., .METRE.));\n";
+
+            int plane_angle_unit_id = entity_id++;
+            out << "#" << plane_angle_unit_id << " = (PLANE_ANGLE_UNIT() NAMED_UNIT(*) SI_UNIT($, .RADIAN.));\n";
+
+            int solid_angle_unit_id = entity_id++;
+            out << "#" << solid_angle_unit_id << " = (SOLID_ANGLE_UNIT() NAMED_UNIT(*) SI_UNIT($, .STERADIAN.));\n";
+
+            int dimensional_exponents_id = entity_id++;
+            out << "#" << dimensional_exponents_id << " = DIMENSIONAL_EXPONENTS(1., 0., 0., 0., 0., 0., 0.);\n";
+
+            int unit_assignment_id = entity_id++;
+            out << "#" << unit_assignment_id << " = UNIT_ASSIGNMENT((#"
+                << length_unit_id << ", #" << plane_angle_unit_id << ", #" << solid_angle_unit_id << "));\n";
+
+            int uncertainty_measure_id = entity_id++;
+            out << "#" << uncertainty_measure_id << " = UNCERTAINTY_MEASURE_WITH_UNIT(LENGTH_MEASURE(1.E-5), #"
+                << length_unit_id << ", 'distance_accuracy_value', 'confusion over distance');\n";
+
+            out << "#" << geom_context_id << " = (GEOMETRIC_REPRESENTATION_CONTEXT(3) "
+                << "GLOBAL_UNCERTAINTY_ASSIGNED_CONTEXT((#" << uncertainty_measure_id << ")) "
+                << "GLOBAL_UNIT_ASSIGNED_CONTEXT((#" << length_unit_id << ", #"
+                << plane_angle_unit_id << ", #" << solid_angle_unit_id << ")) "
+                << "REPRESENTATION_CONTEXT('','')); \n";
+
+            int shape_representation_id = entity_id++;
+            out << "#" << shape_representation_id << " = SHAPE_REPRESENTATION('', "
+                << "(#" << brep_id << "), "
+                << "#" << geom_context_id << ");\n";
+
+            // Create PRODUCT and related entities
+            int product_definition_id = entity_id++;
+            int product_definition_formation_id = entity_id++;
+            int product_id = entity_id++;
+            out << "#" << product_id << " = PRODUCT('NURBS_SURFACE_" << surface_id << "', 'NURBS Surface', '', (#"
+                << geom_context_id << "));\n";
+            out << "#" << product_definition_formation_id << " = PRODUCT_DEFINITION_FORMATION('1', 'Version 1', #"
+                << product_id << ");\n";
+            out << "#" << product_definition_id << " = PRODUCT_DEFINITION('Design', 'NURBS Surface Definition', #"
+                << product_definition_formation_id << ", #"
+                << geom_context_id << ");\n";
+
+            // Create PRODUCT_DEFINITION_SHAPE
+            int product_definition_shape_id = entity_id++;
+            out << "#" << product_definition_shape_id << " = PRODUCT_DEFINITION_SHAPE('NURBS Surface Shape', '', #"
+                << product_definition_id << ");\n";
+
+            // Associate SHAPE_REPRESENTATION with PRODUCT_DEFINITION_SHAPE
+            int shape_definition_representation_id = entity_id++;
+            out << "#" << shape_definition_representation_id << " = SHAPE_DEFINITION_REPRESENTATION(#"
+                << product_definition_shape_id << ", #"
+                << shape_representation_id << ");\n";
+        }
+
+        // Method 2: Writes a complete STEP file containing only the NURBS surface
+        void writeSTEPFile(const std::string& filename) const {
+            std::ofstream file(filename);
+            if (!file.is_open()) {
+                throw std::runtime_error("Cannot open file for writing");
+            }
+
+            // Write the STEP file header
+            file << "ISO-10303-21;\n";
+            file << "HEADER;\n";
+            file << "FILE_DESCRIPTION(('NURBS Surface'), '2;1');\n";
+            file << "FILE_NAME('" << filename << "', '" << getCurrentDateTime()
+                 << "', ('Author'), ('Company'), 'PreprocessorVersion', 'OriginatingSystem', 'Authorisation');\n";
+            file << "FILE_SCHEMA(('CONFIG_CONTROL_DESIGN')); \n";
+            file << "ENDSEC;\n";
+            file << "DATA;\n";
+
+            // Initialize entity ID starting from 10
+            int entity_id = 10;
+
+            // Write the STEP entities
+            toSTEP(file, entity_id);
+
+            // Close the DATA section and file
+            file << "ENDSEC;\n";
+            file << "END-ISO-10303-21;\n";
+
+            file.close();
+        }
+        void decompose(const SurfaceParameter direction ,std::vector<NURBSSurface> &bezierSurfaces) const {
+            //std::vector<double>::iterator knots_it =iterate_unique_knots(_knots_u,_degree[0]);
+
+            NURBSSurface temp = *this;
+            std::vector<double> uknots;
+            temp.update_interval();
+            if (direction == SurfaceParameter::U) {
+                uniqueKnots(temp._knots_u, uknots);
+
+                for (auto &knot: uknots) {
+                    if (knot != uknots[0] && knot != (uknots[uknots.size() - 1])) {
+                        auto [first, second] = temp.split_surface_u(knot);
+
+                        bezierSurfaces.push_back(first);
+                        temp = second;
+                    }
+                }
+                bezierSurfaces.push_back(temp);
+            } else if (direction == SurfaceParameter::V) {
+                uniqueKnots(temp._knots_v, uknots);
+
+                for (auto &knot: uknots) {
+                    if (knot != uknots[0] && knot != (uknots[uknots.size() - 1])) {
+                        auto [first, second] = temp.split_surface_v(knot);
+
+                        bezierSurfaces.push_back(first);
+                        temp = second;
+                    }
+                }
+                bezierSurfaces.push_back(temp);
+            }
+        }
+
+        void decompose( std::vector<NURBSSurface> &bezierSurfaces) const {
+            std::vector<NURBSSurface> bezierSurfaces1;
+            decompose(SurfaceParameter::U, bezierSurfaces1 );
+            for (auto &item: bezierSurfaces1) {
+                item.decompose( SurfaceParameter::V,bezierSurfaces);
+            }
+        }
     };
-
-    inline void surfaceCrossProduct(const NURBSSurface &a, const NURBSSurface &b, NURBSSurface &result) {
-        //if (a._size != b._size || a._knots_u != b._knots_u || a._knots_v != b._knots_v) {
-        //    throw std::invalid_argument("Surfaces must have the same size and knot vectors");
-        //}
-        result._control_points.resize(a._size[0],
-                                      std::vector<vec4>(a._size[1],
-                                                        {0., 0., 0., 1.}
-                                      )
-        );
-        result._knots_u = a._knots_u;
-        result._knots_v = b._knots_v;
-        result._degree = {a._degree[0], b._degree[1]};
-        for (int k = 0; k < a._size[0]; ++k) {
-            for (int j = 0; j < a._size[1]; ++j) {
-                a._control_points[k][j].cross(b._control_points[j][k], result._control_points[k][j]);
-            }
-        }
-        result.update_interval();
-    }
-
-    inline void cross(const NURBSSurface &a, const NURBSSurface &b, NURBSSurface &result) {
-        surfaceCrossProduct(a, b, result);
-    }
-
-    inline NURBSSurface cross(const NURBSSurface &a, const NURBSSurface &b) {
-        NURBSSurface result;
-        surfaceCrossProduct(a, b, result);
-        return result;
-    }
-
-    inline bool contains(std::unordered_set<double> &s, double val) {
-        return std::find(s.begin(), s.end(), val) != s.end();
-    }
-
-    inline void uniqueKnots(std::vector<double> &knots, std::vector<double> &uniqueKnots) {
-        std::unordered_set<double> ks;
-        for (std::size_t k = 0; k < knots.size(); ++k) {
-            if (!contains(ks, knots[k])) {
-                ks.insert(knots[k]);
-                uniqueKnots.push_back(knots[k]);
-            }
-        }
-    }
-
-    inline void decomposeDirection(const NURBSSurface &surf, std::vector<NURBSSurface> &bezierSurfaces, int direction) {
-        //std::vector<double>::iterator knots_it =iterate_unique_knots(_knots_u,_degree[0]);
-        assert(direction==0||direction==1);
-        NURBSSurface temp = surf;
-        std::vector<double> uknots;
-        temp.update_interval();
-        if (direction == 0) {
-            uniqueKnots(temp._knots_u, uknots);
-
-            for (auto &knot: uknots) {
-                if (knot != uknots[0] && knot != (uknots[uknots.size() - 1])) {
-                    auto [first, second] = temp.split_surface_u(knot);
-
-                    bezierSurfaces.push_back(first);
-                    temp = second;
+        inline void surfaceCrossProduct(const NURBSSurface &a, const NURBSSurface &b, NURBSSurface &result) {
+            //if (a._size != b._size || a._knots_u != b._knots_u || a._knots_v != b._knots_v) {
+            //    throw std::invalid_argument("Surfaces must have the same size and knot vectors");
+            //}
+            result._control_points.resize(a._size[0],
+                                          std::vector<vec4>(a._size[1],
+                                                            {0., 0., 0., 1.}
+                                          )
+            );
+            result._knots_u = a._knots_u;
+            result._knots_v = b._knots_v;
+            result._degree = {a._degree[0], b._degree[1]};
+            for (int k = 0; k < a._size[0]; ++k) {
+                for (int j = 0; j < a._size[1]; ++j) {
+                    a._control_points[k][j].cross(b._control_points[j][k], result._control_points[k][j]);
                 }
             }
-            bezierSurfaces.push_back(temp);
-        } else if (direction == 1) {
-            uniqueKnots(temp._knots_v, uknots);
-
-            for (auto &knot: uknots) {
-                if (knot != uknots[0] && knot != (uknots[uknots.size() - 1])) {
-                    auto [first, second] = temp.split_surface_v(knot);
-
-                    bezierSurfaces.push_back(first);
-                    temp = second;
-                }
-            }
-            bezierSurfaces.push_back(temp);
-        }
-    }
-
-    inline void decompose(const NURBSSurface &surf, std::vector<NURBSSurface> &bezierSurfaces) {
-        std::vector<NURBSSurface> bezierSurfaces1;
-        decomposeDirection(surf, bezierSurfaces1, 0);
-        for (auto &item: bezierSurfaces1) {
-            decomposeDirection(item, bezierSurfaces, 1);
-        }
-    }
-    // Function to decompose a NURBS curve into Bezier curves
-    inline void decompose(const NURBSCurve &curve, std::vector<NURBSCurve> &bezierCurves) {
-        // Ensure that the curve is valid for decomposition
-        //assert(!curve.knots.empty());
-        //assert(curve._degree >= 1);
-
-
-        // Create a temporary copy of the curve to perform splits
-        NURBSCurve temp = curve;
-        temp.update_interval();
-
-
-        // Extract unique knots from the knot vector
-        std::vector<double> unique_knots;
-        uniqueKnots(temp.knots, unique_knots);
-
-        // Iterate over the unique knots, excluding the first and last
-        for (size_t i = 1; i < unique_knots.size() - 1; ++i) {
-            double knot = unique_knots[i];
-
-            // Split the curve at the current knot
-            auto [first, second] = temp.split(knot);
-
-            // Add the first segment to the Bezier curves list
-            bezierCurves.push_back(first);
-
-            // Continue with the second segment for further splitting
-            temp = second;
+            result.update_interval();
         }
 
-        // Add the final segment to the Bezier curves list
-        bezierCurves.push_back(temp);
-    }
-
-    /**
-         * Join two NURBS curves if they share an endpoint
-         * @param first First curve to join
-         * @param second Second curve to join
-         * @param result The resulting joined curve
-         * @return true if curves were successfully joined, false otherwise
-         */
-    inline bool join(const NURBSCurve& first, const NURBSCurve& second, NURBSCurve& result)
-    {
-        // Check if either curve is already closed
-        if (first.is_periodic() || second.is_periodic())
-        {
-            return false;
+        inline void cross(const NURBSSurface &a, const NURBSSurface &b, NURBSSurface &result) {
+            surfaceCrossProduct(a, b, result);
         }
 
-        // Get endpoints of both curves
-        vec3 first_start, first_end, second_start, second_end;
-        first.evaluate(first._interval[0], first_start);
-        first.evaluate(first._interval[1], first_end);
-        second.evaluate(second._interval[0], second_start);
-        second.evaluate(second._interval[1], second_end);
-
-        // Tolerance for endpoint matching
-        const double tol = 1e-10;
-
-        // Check all possible connection combinations
-        bool start_start = first_start.distance(second_start) < tol;
-        bool start_end = first_start.distance(second_end) < tol;
-        bool end_start = first_end.distance(second_start) < tol;
-        bool end_end = first_end.distance(second_end) < tol;
-
-        // If no endpoints match, cannot join
-        if (!start_start && !start_end && !end_start && !end_end)
-        {
-            return false;
+        inline NURBSSurface cross(const NURBSSurface &a, const NURBSSurface &b) {
+            NURBSSurface result;
+            surfaceCrossProduct(a, b, result);
+            return result;
         }
 
-        // Get control points from both curves
-        std::vector<vec4> new_control_points;
-        new_control_points.reserve(first.control_points.size() + second.control_points.size());
 
-        // Join based on which endpoints match
-        if (end_start)
-        {
-            // Normal case: first end to second start
-            new_control_points = first.control_points;
-            new_control_points.insert(new_control_points.end(),
-                                      second.control_points.begin(), second.control_points.end());
-        }
-        else if (start_start)
-        {
-            // Reverse first curve
-            new_control_points.insert(new_control_points.end(),
-                                      first.control_points.rbegin(), first.control_points.rend());
-            new_control_points.insert(new_control_points.end(),
-                                      second.control_points.begin(), second.control_points.end());
-        }
-        else if (end_end)
-        {
-            // Reverse second curve
-            new_control_points = first.control_points;
-            new_control_points.insert(new_control_points.end(),
-                                      second.control_points.rbegin(), second.control_points.rend());
-        }
-        else if (start_end)
-        {
-            // Reverse first curve and reverse second curve
-            new_control_points.insert(new_control_points.end(),
-                                      first.control_points.rbegin(), first.control_points.rend());
-            new_control_points.insert(new_control_points.end(),
-                                      second.control_points.rbegin(), second.control_points.rend());
-        }
 
-        // If both start and end points match (after potential reversals), make it periodic
-        bool should_be_periodic = false;
-        {
-            vec3 new_start, new_end;
-            vec4 start_pt = new_control_points.front();
-            vec4 end_pt = new_control_points.back();
-            new_start.set(start_pt.x / start_pt.w, start_pt.y / start_pt.w, start_pt.z / start_pt.w);
-            new_end.set(end_pt.x / end_pt.w, end_pt.y / end_pt.w, end_pt.z / end_pt.w);
-            should_be_periodic = new_start.distance(new_end) < tol;
-        }
-
-        // Create result curve
-        result = NURBSCurve(new_control_points, first._degree, should_be_periodic);
-        return true;
-    }
 
 }
 

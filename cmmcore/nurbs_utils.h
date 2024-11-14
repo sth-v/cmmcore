@@ -29,7 +29,9 @@ namespace cmmcore {
 
     #define CMMCORE_MAX_DEGREE 8
 #endif
-
+    inline bool contains(std::unordered_set<double> &s, double val) {
+        return std::find(s.begin(), s.end(), val) != s.end();
+    }
     constexpr size_t CMMCORE_DEG_STACK_SIZE= CMMCORE_MAX_DEGREE + 1;
 
     /**
@@ -1042,6 +1044,44 @@ inline void get_nurbs_derivative(const int degree,
         p_new.w = 1.0;
     }
 }
+
+
+    // Helper function to extract unique knots and their multiplicities
+    inline void getKnotMultiplicities(const std::vector<double>& knots,
+                                      std::vector<double>& unique_knots,
+                                      std::vector<int>& multiplicities) {
+        unique_knots.clear();
+        multiplicities.clear();
+        if (knots.empty()) return;
+        double last_knot = knots[0];
+        int count = 1;
+        for (std::size_t i = 1; i < knots.size(); ++i) {
+            if (fabs(knots[i] - last_knot) < 1e-8) {
+                ++count;
+            } else {
+                unique_knots.push_back(last_knot);
+                multiplicities.push_back(count);
+                last_knot = knots[i];
+                count = 1;
+            }
+        }
+        unique_knots.push_back(last_knot);
+        multiplicities.push_back(count);
+    }
+
+
+
+    inline void uniqueKnots(std::vector<double> &knots, std::vector<double> &uniqueKnots) {
+        std::unordered_set<double> ks;
+        for (std::size_t k = 0; k < knots.size(); ++k) {
+            if (!contains(ks, knots[k])) {
+                ks.insert(knots[k]);
+                uniqueKnots.push_back(knots[k]);
+            }
+        }
+    }
+
+
 
 }
 
