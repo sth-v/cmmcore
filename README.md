@@ -1,8 +1,9 @@
 # cmmcore
-<span style="color:red; font-weight:bold;">WARNING!</span>
-<span style="color:red;">
+
+
+> :warning: **Warning**: <br>
 This solution is in active development and far from complete, it does not implement a stable api and does not guarantee any backwards compatibility. Things can change. Use at your own risk.
-</span>
+
 
 The minimal, cutting-edge CAD engine.
 
