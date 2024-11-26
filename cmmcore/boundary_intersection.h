@@ -26,13 +26,13 @@ inline NURBSCurve extract_isocurve(const NURBSSurface& surface, const double par
     }
 
     auto interval = surface.interval();
-    
+
     if (direction == SurfaceParameter::U) {
         // For u-direction: we fix u and vary v
         auto param_range = interval[0];  // u range
         if (param < param_range[0] || param > param_range[1]) {
-            throw std::invalid_argument("Parameter " + std::to_string(param) + 
-                                      " is out of range [" + std::to_string(param_range[0]) + 
+            throw std::invalid_argument("Parameter " + std::to_string(param) +
+                                      " is out of range [" + std::to_string(param_range[0]) +
                                       "," + std::to_string(param_range[1]) + "]");
         }
 
@@ -65,13 +65,13 @@ inline NURBSCurve extract_isocurve(const NURBSSurface& surface, const double par
         crv.update_interval();
 
         return crv;
-    } 
+    }
     else {  // direction == "v"
         // For v-direction: we fix v and vary u
         auto param_range = interval[1];  // v range
         if (param < param_range[0] || param > param_range[1]) {
-            throw std::invalid_argument("Parameter " + std::to_string(param) + 
-                                      " is out of range [" + std::to_string(param_range[0]) + 
+            throw std::invalid_argument("Parameter " + std::to_string(param) +
+                                      " is out of range [" + std::to_string(param_range[0]) +
                                       "," + std::to_string(param_range[1]) + "]");
         }
 
