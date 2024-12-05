@@ -208,3 +208,12 @@ step_test = executable('step_test',
 )
 test('step_test',
      step_test)
+
+# minimize_scalar_test
+minimize_scalar_test = executable('minimize_scalar_test',
+                                  'minimize_scalar_test.cpp',
+                                  include_directories : my_inc,
+                                  install : false
+)
+test('minimize_scalar_test',
+     minimize_scalar_test)
